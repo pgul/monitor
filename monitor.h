@@ -64,10 +64,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #ifndef NO_TRUNK
               int vlan,
 #endif
-#ifdef HAVE_PKT_TYPE
-              int in,
-#endif
-              int proto);
+              int in, int proto);
 void write_stat(void);
 int  config(char *name);
 char getclass(unsigned long addr);

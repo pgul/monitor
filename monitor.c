@@ -5,6 +5,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -41,6 +44,7 @@
 #define DLT_PPP_BSDOS	14	/* BSD/OS Point-to-point Protocol */
 #define DLT_LANE8023    15      /* LANE 802.3(Ethernet) */
 #define DLT_CIP         16      /* ATM Classical IP */
+#define DLT_LINUX_SLL	113	/* Linux cooked sockets */
 
 typedef struct pcap pcap_t;
 struct pcap_pkthdr {
@@ -91,6 +95,22 @@ struct ether_vlan_header {
 #ifndef ETHERTYPE_VLAN
 #define ETHERTYPE_VLAN 0x8100	/* IEEE 802.1Q VLAN tagging */
 #endif
+#endif
+
+#ifdef	DLT_LINUX_SLL
+#ifndef	SLL_HDR_LEN
+#define SLL_HDR_LEN     16
+#endif
+#ifndef	SLL_ADDRLEN
+#define SLL_ADDRLEN     8
+#endif
+struct sll_header {
+	u_int16_t	sll_pkttype;	/* packet type */
+	u_int16_t	sll_hatype;	/* link-layer address type */
+	u_int16_t	sll_halen;	/* link-layer address length */
+	u_int8_t	sll_addr[SLL_ADDRLEN];	/* link-layer address */
+	u_int16_t	sll_protocol;	/* protocol */
+};
 #endif
 
 #ifndef SIGINFO
@@ -160,13 +180,17 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct ether_vlan_header *vlan_hdr;
   int vlan;
 #endif
-#ifdef HAVE_PKT_TYPE
-  int in;
+#ifdef DLT_LINUX_SLL
+  struct sll_header *sll_hdr;
+#endif
+  int in=-1;
 
+#ifdef HAVE_PKT_TYPE
   if (hdr->pkt_type == 4) // PACKET_OUTGOING
     in = 0;
-  else // PACKET_HOST, PACKET_BROADCAST, PACKET_MULTICAST, PACKET_OTHERHOST
+  else if (hdr->pkt_type == 0) // PACKET_HOST
     in = 1;
+  // PACKET_BROADCAST, PACKET_MULTICAST, PACKET_OTHERHOST - use unknown
 #endif
   // fprintf(origerr, "#"); fflush(origerr);
   if (linktype == DLT_EN10MB)
@@ -199,6 +223,25 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     vlan = 0;
 #endif
     ip_hdr = (struct ip *)data;
+#ifdef DLT_LINUX_SLL
+  } else if (linktype == DLT_LINUX_SLL)
+  { 
+    if (hdr->len < sizeof(*sll_hdr)+sizeof(*ip_hdr))
+      return;
+    sll_hdr = (struct sll_header *)data;
+    eth_hdr = NULL;
+#ifndef NO_TRUNK
+    vlan = 0;
+#endif
+    if (ntohs(sll_hdr->sll_protocol)==ETHERTYPE_IP)
+      ip_hdr = (struct ip *)(sll_hdr+1);
+    else
+      return;
+#endif
+    if (sll_hdr->sll_pkttype == 4)	// LINUX_SLL_OUTGOING
+      in = 0;
+    else if (sll_hdr->sll_pkttype == 0)	// LINUX_SLL_HOST
+      in = 1;
   } else
     return;
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
@@ -217,10 +260,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 #ifndef NO_TRUNK
            vlan,
 #endif
-#ifdef HAVE_PKT_TYPE
-           in,
-#endif
-           ip_hdr->ip_p);
+           in, ip_hdr->ip_p);
   if (last_write+write_interval<=time(NULL))
     write_stat();
   if (last_reload+reload_interval<=time(NULL))
@@ -265,9 +305,13 @@ int main(int argc, char *argv[])
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
   if (pk)
   { real_linktype = pcap_datalink(pk);
-    pcap_close(pk);
+    if (real_linktype != DLT_EN10MB)
+    { pcap_close(pk);
+      pk = NULL;
+    }
   }
-  pk = pcap_open_live_new(piface, MTU, -1, 0, ebuf, 0, 0, NULL);
+  if (pk==NULL)
+    pk = pcap_open_live_new(piface, MTU, -1, 0, ebuf, 0, 0, NULL);
 #endif
   for (i=0; i<=argc; i++)
     saved_argv[i]=argv[i];
@@ -293,6 +337,10 @@ int main(int argc, char *argv[])
       { char *sdlt, unspec[32];
         if (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0]))
           sdlt = dlt[linktype];
+#ifdef DLT_LINUX_SLL
+        else if (linktype == DLT_LINUX_SLL)
+          sdlt = "linux sll";
+#endif
         else
         { sprintf(unspec, "unspec (%d)", linktype);
           sdlt = unspec;
@@ -309,17 +357,17 @@ int main(int argc, char *argv[])
 #else
         if (linktype == DLT_EN10MB
 #endif
-            && memcmp(mymac, nullmac, 6)==0)
+            && memcmp(my_mac, nullmac, ETHER_ADDR_LEN)==0)
         { /* autodetect mac-addr */
           struct ifreq ifr;
           int fd = socket(PF_INET, SOCK_DGRAM, 0);
           if (fd >= 0)
           {
             memset(&ifr, 0, sizeof(ifr));
-            strcpy(ifr.ifr_name, ifname);
+            strcpy(ifr.ifr_name, iface);
             if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
                 ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
-              memcpy(hwaddr, ifr.ifr_hwaddr.sa_data, 6);
+              memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
             close(fd);
           }
         }
