@@ -182,7 +182,7 @@ void write_stat(void)
     if (pl->nmacs)
     { for (k=0; k<maxmacs; k++)
         if (pl->mactable[k])
-        { for (i=0; i<2; i++);
+        { for (i=0; i<2; i++)
             for (j=0; j<NCLASSES; j++)
               if (pl->mactable[k]->bytes[i][j])
               { 
