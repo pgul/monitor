@@ -68,4 +68,4 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 void write_stat(void);
 int  config(char *name);
 char getclass(unsigned long addr);
-void init_map(void);
+int  init_map(void);

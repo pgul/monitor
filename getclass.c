@@ -34,9 +34,9 @@ static void freeshmem(void)
 			}
 }
 
-void init_map(void)
+int init_map(void)
 {
-	if (map) return;
+	if (map) return 1;
 	if (shmid==-1)
 	{
 		atexit(freeshmem);
@@ -44,5 +44,7 @@ void init_map(void)
 	}
 	if (shmid != -1)
 		map = shmat(shmid, NULL, SHM_RDONLY);
+	if (map==NULL) return 1;
+	return 0;
 }
 

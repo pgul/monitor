@@ -216,7 +216,11 @@ int config(char *name)
   }
   fclose(f);
   if (fromshmem)
-    init_map();
+  { if (init_map())
+    { printf("Can't init shared memory: %s\n", strerror(errno));
+      return 1;
+    }
+  }
   return 0;
 }
 
