@@ -1,7 +1,7 @@
 #define CONFNAME	CONFDIR "/monitor.conf"
 #define IFACE		"all"
 #define MTU		2048
-#define MYMAC		0x00,0x30,0x80,0x35,0x50,0x43
+#define MYMAC		0x00,0x00,0x00,0x00,0x00,0x00
 #define LOGNAME		LOGDIR "/monitor"
 #define SNAPFILE	LOGDIR "/snap"
 #define ACLNAME		CONFDIR "/monitor.acl"

@@ -111,6 +111,7 @@ static char *dlt[] = {
  "null", "ethernet", "eth3m", "ax25", "pronet", "chaos",
  "ieee802", "arcnet", "slip", "ppp", "fddi", "llc/snap atm", "raw ip",
  "bsd/os slip", "bsd/os ppp", "lane 802.3", "atm" };
+static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 
 void hup(int signo)
 {
@@ -298,6 +299,29 @@ int main(int argc, char *argv[])
       }
       else
       {
+#ifdef SIOCGIFHWADDR
+#ifdef HAVE_PCAP_OPEN_LIVE_NEW
+        if (real_linktype == DLT_EN10MB
+#else
+        if (linktype == DLT_EN10MB
+#endif
+            && memcmp(mymac, nullmac, 6)==0)
+        { /* autodetect mac-addr */
+          struct ifreq ifr;
+          int fd = socket(PF_INET, SOCK_DGRAM, 0);
+          if (fd >= 0)
+          {
+            memset(&ifr, 0, sizeof(ifr));
+            strcpy(ifr.ifr_name, ifname);
+            if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
+                ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
+              memcpy(hwaddr, ifr.ifr_hwaddr.sa_data, 6);
+            close(fd);
+          }
+        }
+#endif
+#endif
+
         struct bpf_program fcode;
         bpf_u_int32 localnet, netmask;
         if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
