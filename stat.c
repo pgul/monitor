@@ -34,6 +34,7 @@
 #endif
 
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
+static u_char broadcast[ETHER_ADDR_LEN]={0xff,0xff,0xff,0xff,0xff,0xff};
 extern long snap_traf;
 extern FILE *fsnap, *origerr;
 
@@ -189,17 +190,8 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #endif
 
   if (dst_mac)
-  { if (memcmp(dst_mac, my_mac, ETHER_ADDR_LEN)==0)
-    { /* incoming packet */
-      in=1;
-      remote=src_ip;
-      local=dst_ip;
-      remote_mac=src_mac;
-#ifdef WITH_PORTS
-      rport=sport;
-      lport=dport;
-#endif
-    } else if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
+  {
+    if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
     { /* outgoing packet */
       in = 0;
       remote=dst_ip;
@@ -208,6 +200,18 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #ifdef WITH_PORTS
       rport=dport;
       lport=sport;
+#endif
+    }
+    else if (memcmp(dst_mac, my_mac, ETHER_ADDR_LEN)==0 ||
+             memcmp(dst_mac, broadcast, ETHER_ADDR_LEN)==0)
+    { /* incoming packet */
+      in=1;
+      remote=src_ip;
+      local=dst_ip;
+      remote_mac=src_mac;
+#ifdef WITH_PORTS
+      rport=sport;
+      lport=dport;
 #endif
     }
     else
@@ -292,7 +296,7 @@ left:
         (pa->port1==(unsigned short)-1 || (pa->port1<=(pa->reverse ? lport : rport) && (pa->port2>=(pa->reverse ? lport : rport)))) &&
         (pa->lport1==(unsigned short)-1 || (pa->lport1<=(pa->reverse ? rport : lport) && (pa->lport2>=(pa->reverse ? rport : lport)))) &&
 #endif
-        (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
+        (*(unsigned long *)pa->mac==0 || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
     { if ((pa->ip==0xfffffffful || ((pa->reverse ? src_ip : dst_ip) & pa->mask)==pa->ip) &&
           (pa->remote==0xfffffffful || ((pa->reverse ? dst_ip : src_ip) & pa->rmask)==pa->remote) &&

@@ -361,6 +361,7 @@ int config(char *name)
     /* create attribute structure */
     pa = calloc(1, sizeof(*pa));
     memset(pa, 0xff, sizeof(*pa));
+    memset(pa->mac, 0, sizeof(pa->mac)); // ffff.ffff.ffff - broadcast
     pa->link = pl;
     pa->next = NULL;
     pa->reverse=pa->fallthru=0;
