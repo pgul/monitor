@@ -46,11 +46,27 @@ struct pcap_pkthdr {
 	unsigned caplen;     /* length of portion present */
 	unsigned len;        /* length this packet (off wire) */
 };                                                                 
+struct bpf_program {
+#ifdef __linux__
+	/* Thanks, Alan  8) */
+	unsigned short bf_len;
+#else
+	unsigned int bf_len;
+#endif
+	struct bpf_insn *bf_insns;
+};
+typedef int bpf_int32;
+typedef unsigned int bpf_u_int32;
 typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char *);
+
 pcap_t	*pcap_open_live(char *, int, int, int, char *);
 void	pcap_close(pcap_t *);
 int	pcap_loop(pcap_t *, int, pcap_handler, u_char *);
 int	pcap_datalink(pcap_t *);
+int	pcap_lookupnet(char *, bpf_u_int32 *, bpf_u_int32 *, char *);
+int	pcap_compile(pcap_t *, struct bpf_program *, char *, int, bpf_u_int32);
+int	pcap_setfilter(pcap_t *, struct bpf_program *);
+
 #endif
 #include "monitor.h"
 
@@ -129,6 +145,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct ether_vlan_header *vlan_hdr;
   int vlan;
 #endif
+  // fprintf(stderr, "#"); fflush(stderr);
   if (linktype == DLT_EN10MB)
   {
     if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
@@ -213,7 +230,14 @@ int main(int argc, char *argv[])
         printf("Unsupported link type %s!\n",
           (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0])) ? dlt[linktype] : "unspec");
       else
+      {
+        struct bpf_program fcode;
+        bpf_u_int32 localnet, netmask;
+        pcap_lookupnet(iface, &localnet, &netmask, ebuf);
+        if (pcap_compile(pk, &fcode, NULL, 1, netmask) == 0)
+          pcap_setfilter(pk, &fcode);
         pcap_loop(pk, -1, dopkt, NULL);
+      }
       unlink(pidfile);
     }
     pcap_close(pk);
