@@ -249,10 +249,10 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     else
       return;
 #endif
-    if (sll_hdr->sll_pkttype == 4)	// LINUX_SLL_OUTGOING
-      in = 0;
-    else if (sll_hdr->sll_pkttype == 0)	// LINUX_SLL_HOST
+    if (sll_hdr->sll_pkttype == 0)	// LINUX_SLL_HOST
       in = 1;
+    else if (ntohs(sll_hdr->sll_pkttype) == 4)	// LINUX_SLL_OUTGOING
+      in = 0;
   } else
     return;
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
