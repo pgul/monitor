@@ -11,6 +11,7 @@
 #ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
 #else
+#include <net/if.h>
 #include <netinet/if_ether.h>
 #endif
 #include "monitor.h"
