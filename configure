@@ -929,7 +929,7 @@ EOF
 if { (eval echo configure:930: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
-#define HAVE_PACAP_H 1
+#define HAVE_PCAP_H 1
 EOF
  echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
 else
