@@ -34,7 +34,7 @@
 
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
 extern long snap_traf;
-extern FILE *fsnap;
+extern FILE *fsnap, *origerr;
 
 void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
               u_long len,
@@ -406,9 +406,9 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
 
 static void mysql_err(MYSQL *conn, char *message)
 {
-	fprintf(stderr, "%s\n", message);
+	fprintf(origerr, "%s\n", message);
 	if (conn)
-		fprintf(stderr, "Error %u (%s)\n",
+		fprintf(origerr, "Error %u (%s)\n",
 		        mysql_errno(conn), mysql_error(conn));
 }
 
@@ -604,7 +604,7 @@ void write_stat(void)
 
               strcpy(query, "SELECT user_id FROM ");
               strcat(query, mysql_utable);
-              strcat(query, "WHERE user = '");
+              strcat(query, " WHERE user = '");
               p=query+strlen(query);
               p+=mysql_escape_string(p, pl->name, strlen(pl->name));
               strcpy(p, "'");
@@ -632,7 +632,7 @@ void write_stat(void)
               { /* new user, add to table */
                 strcpy(query, "INSERT ");
                 strcat(query, mysql_utable);
-                strcat(query, "SET user='");
+                strcat(query, " SET user='");
                 p=query+strlen(query);
                 p+=mysql_escape_string(p, pl->name, strlen(pl->name));
                 strcpy(p, "'");
