@@ -17,15 +17,15 @@ case x$ac_cv_header_pcap_h in
         OLD_CFLAGS=$CFLAGS
         CFLAGS="$CFLAGS -I/usr/include/pcap"
         AC_TRY_COMPILE([#include <pcap.h>],[],
-                       AC_MSG_RESULT(yes); ac_cv_header_pcap_h=yes,
-                       AC_MSG_RESULT(no))
+           AC_DEFINE(HAVE_PACAP_H) AC_MSG_RESULT(yes); ac_cv_header_pcap_h=yes,
+           AC_MSG_RESULT(no))
         case x$ac_cv_header_pcap_h in
           xno)
             AC_MSG_CHECKING(for -I/usr/contrib/include needed for pcap.h)
             CFLAGS="$OLD_CFLAGS -I/usr/contrib/include"
             AC_TRY_COMPILE([#include <pcap.h>],[],
-                       AC_MSG_RESULT(yes); ac_cv_header_pcap_h=yes,
-                       AC_MSG_RESULT(no))
+             AC_DEFINE(HAVE_PCAP_H) AC_MSG_RESULT(yes); ac_cv_header_pcap_h=yes,
+             AC_MSG_RESULT(no))
             ;;
         esac
         ;;

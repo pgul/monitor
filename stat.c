@@ -35,87 +35,113 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #endif
               int proto)
 {
-  u_long local, remote;
-  u_char *remote_mac;
-  int in, src_ua, dst_ua, key, leftpacket;
+  u_long local=0, remote=0;
+  u_char *remote_mac=NULL;
+  int in=0, src_ua, dst_ua, key, leftpacket;
   struct attrtype *pa;
   sigset_t set, oset;
   struct mactype **mactable;
 
   src_ip = ntohl(src_ip);
   dst_ip = ntohl(dst_ip);
-  if (memcmp(dst_mac, my_mac, ETHER_ADDR_LEN)==0)
-  { /* incoming packet */
-    in=1;
-    remote=src_ip;
-    local=dst_ip;
-    remote_mac=src_mac;
-  } else if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
-  { /* outgoing packet */
-    in = 0;
-    remote=dst_ip;
-    local=src_ip;
-    remote_mac=dst_mac;
-  }
-  else
-  { /* left packet */
+  if (dst_mac)
+  { if (memcmp(dst_mac, my_mac, ETHER_ADDR_LEN)==0)
+    { /* incoming packet */
+      in=1;
+      remote=src_ip;
+      local=dst_ip;
+      remote_mac=src_mac;
+    } else if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
+    { /* outgoing packet */
+      in = 0;
+      remote=dst_ip;
+      local=src_ip;
+      remote_mac=dst_mac;
+    }
+    else
+    { /* left packet */
 left:
 #if 0
-    if (fsnap)
-    { fprintf(fsnap, "?? %02x%02x.%02x%02x.%02x%02x -> %02x%02x.%02x%02x.%02x%02x, %u.%u.%u.%u->%u.%u.%u.%u %lu bytes"
+      if (fsnap)
+      { fprintf(fsnap, "?? %02x%02x.%02x%02x.%02x%02x -> %02x%02x.%02x%02x.%02x%02x, %u.%u.%u.%u->%u.%u.%u.%u %lu bytes"
 #ifndef NO_TRUNK
-        " (vlan %d)"
+         " (vlan %d)"
 #endif
-        "\n",
-        src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5],
-        dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5],
-        ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
-        ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
-        len
+         "\n",
+         src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5],
+         dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5],
+         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
+         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
+         len
 #ifndef NO_TRUNK
-        ,vlan
+         ,vlan
 #endif
         );
-      fflush(fsnap);
-      if ((snap_traf-=len) <= 0)
-      { fclose(fsnap);
-        fsnap=NULL;
-        snap_traf=0;
+        fflush(fsnap);
+        if ((snap_traf-=len) <= 0)
+        { fclose(fsnap);
+          fsnap=NULL;
+          snap_traf=0;
+        }
       }
-    }
 #endif
-    return;
+      return;
+    }
+  } else
+  { /* raw IP, no macs */
   }
   sigemptyset(&set);
   sigaddset(&set, SIGINFO);
   sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
   for (pa=attrhead; pa; pa=pa->next)
-  { if (
+  { int find=0;
+    if (dst_mac)
+      find=
 #ifndef NO_TRUNK
         (pa->vlan==(unsigned short)-1 || pa->vlan==vlan) &&
 #endif
         (pa->ip==0xfffffffful || ((pa->reverse ? local : remote) & pa->mask)==pa->ip) &&
 	(pa->proto==(unsigned short)-1 || pa->proto==proto) &&
-        (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0))
+        (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
+    else
+    { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&
+	  (pa->proto==(unsigned short)-1 || pa->proto==proto))
+      { find = 1;
+	in = 0;
+      } else if ((pa->ip==0xfffffffful || (dst_ip & pa->mask)==pa->ip) &&
+	  (pa->proto==(unsigned short)-1 || pa->proto==proto))
+      { find = 1;
+	in = 1;
+      }
+    }
+    if (find)
     {
   leftpacket=0;
-  if (fsnap && !pa->reverse)
-  { fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
+  if (fsnap && !pa->fallthru)
+  { 
+    if (dst_mac)
+      fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK
         "vlan %d, "
 #endif
         "mac %02x%02x.%02x%02x.%02x%02x)\n",
-        (in ? "<-" : "->"),
+        ((in^pa->reverse) ? "<-" : "->"),
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
         pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
-        (in ? "in" : "out"), len,
+        ((in^pa->reverse) ? "in" : "out"), len,
 #ifndef NO_TRUNK
         vlan,
 #endif
 	remote_mac[0], remote_mac[1], remote_mac[2],
 	remote_mac[3], remote_mac[4], remote_mac[5]);
+    else
+      fprintf(fsnap, "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
+        ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
+        ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
+        pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
+	((in^pa->reverse) ? "in" : "out"), len);
     fflush(fsnap);
     if ((snap_traf-=len) <= 0)
     { fclose(fsnap);
@@ -125,7 +151,7 @@ left:
   }
   src_ua=find_mask(src_ip);
   dst_ua=find_mask(dst_ip);
-  if ((mactable=pa->link->mactable) != NULL)
+  if (remote_mac && (mactable=pa->link->mactable) != NULL)
   { for (key=*(unsigned short *)(remote_mac+4) % maxmacs;
          mactable[key] && memcmp(remote_mac,mactable[key]->mac,ETHER_ADDR_LEN);
          key = (key+1) % maxmacs);

@@ -928,7 +928,10 @@ int main() {
 EOF
 if { (eval echo configure:930: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
-  echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
+  cat >> confdefs.h <<\EOF
+#define HAVE_PACAP_H 1
+EOF
+ echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
@@ -939,19 +942,22 @@ rm -f conftest*
         case x$ac_cv_header_pcap_h in
           xno)
             echo $ac_n "checking for -I/usr/contrib/include needed for pcap.h""... $ac_c" 1>&6
-echo "configure:943: checking for -I/usr/contrib/include needed for pcap.h" >&5
+echo "configure:946: checking for -I/usr/contrib/include needed for pcap.h" >&5
             CFLAGS="$OLD_CFLAGS -I/usr/contrib/include"
             cat > conftest.$ac_ext <<EOF
-#line 946 "configure"
+#line 949 "configure"
 #include "confdefs.h"
 #include <pcap.h>
 int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:953: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:956: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
-  echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
+  cat >> confdefs.h <<\EOF
+#define HAVE_PCAP_H 1
+EOF
+ echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
@@ -972,12 +978,12 @@ esac
 for ac_func in inet_addr
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:976: checking for $ac_func" >&5
+echo "configure:982: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 981 "configure"
+#line 987 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1000,7 +1006,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:1004: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1010: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -1027,18 +1033,18 @@ done
 case x$ac_cv_func_inet_addr in
   xno)
     echo $ac_n "checking for inet_addr in -lxnet""... $ac_c" 1>&6
-echo "configure:1031: checking for inet_addr in -lxnet" >&5
+echo "configure:1037: checking for inet_addr in -lxnet" >&5
     OLD_LIBS=$LIBS
     LIBS="$LIBS -lxnet"
     cat > conftest.$ac_ext <<EOF
-#line 1035 "configure"
+#line 1041 "configure"
 #include "confdefs.h"
 #include <arpa/inet.h>
 int main() {
 inet_addr("");
 ; return 0; }
 EOF
-if { (eval echo configure:1042: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1048: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6
 else
@@ -1054,16 +1060,16 @@ esac
 OLD_LIBS=$LIBS
 LIBS="$LIBS -lpcap"
 echo $ac_n "checking for libpcap""... $ac_c" 1>&6
-echo "configure:1058: checking for libpcap" >&5
+echo "configure:1064: checking for libpcap" >&5
 cat > conftest.$ac_ext <<EOF
-#line 1060 "configure"
+#line 1066 "configure"
 #include "confdefs.h"
 
 int main() {
 pcap_open_live();
 ; return 0; }
 EOF
-if { (eval echo configure:1067: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1073: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6
 else

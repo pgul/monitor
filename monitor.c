@@ -22,6 +22,24 @@
 #elif defined(HAVE_PCAP_H)
 #include <pcap.h>
 #else
+#define DLT_NULL	0	/* no link-layer encapsulation */
+#define DLT_EN10MB	1	/* Ethernet (10Mb) */
+#define DLT_EN3MB	2	/* Experimental Ethernet (3Mb) */
+#define DLT_AX25	3	/* Amateur Radio AX.25 */
+#define DLT_PRONET	4	/* Proteon ProNET Token Ring */
+#define DLT_CHAOS	5	/* Chaos */
+#define DLT_IEEE802	6	/* IEEE 802 Networks */
+#define DLT_ARCNET	7	/* ARCNET */
+#define DLT_SLIP	8	/* Serial Line IP */
+#define DLT_PPP		9	/* Point-to-point Protocol */
+#define DLT_FDDI	10	/* FDDI */
+#define DLT_ATM_RFC1483	11	/* LLC/SNAP encapsulated atm */
+#define DLT_RAW		12	/* raw IP */
+#define DLT_SLIP_BSDOS	13	/* BSD/OS Serial Line IP */
+#define DLT_PPP_BSDOS	14	/* BSD/OS Point-to-point Protocol */
+#define DLT_LANE8023    15      /* LANE 802.3(Ethernet) */
+#define DLT_CIP         16      /* ATM Classical IP */
+
 typedef struct pcap pcap_t;
 struct pcap_pkthdr {
 	struct timeval ts;      /* time stamp */
@@ -32,6 +50,7 @@ typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char 
 pcap_t	*pcap_open_live(char *, int, int, int, char *);
 void	pcap_close(pcap_t *);
 int	pcap_loop(pcap_t *, int, pcap_handler, u_char *);
+int	pcap_datalink(pcap_t *);
 #endif
 #include "monitor.h"
 
@@ -60,6 +79,7 @@ FILE *fsnap;
 pcap_t *pk;
 char *saved_argv[20];
 char *confname;
+int  linktype;
 
 void hup(int signo)
 {
@@ -105,88 +125,39 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct ether_vlan_header *vlan_hdr;
   int vlan;
 #endif
-#if 0
-  if (snap_traf>0)
-  {
-    bpf_u_int32 len;
-    for (len=0; len<hdr->len; len++)
-    { fprintf(fsnap, "%02x", data[len]);
-      if ((len+1)%16) fputc(' ', fsnap);
-      else fputc('\n', fsnap);
-    }
-    if (len%16)
-      fputc('\n', fsnap);
-    fputc('\n', fsnap);
-    snap_traf-=hdr->len;
-    if (snap_traf<=0)
-    { fclose(fsnap);
-      fsnap=NULL;
-      snap_traf=0;
-    }
-  }
-#endif
   if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
     return;
-  eth_hdr = (struct ether_header *)data;
-#ifndef NO_TRUNK
-  vlan=0;
-  if (ntohs(eth_hdr->ether_type)==ETHERTYPE_VLAN)
+  if (linktype == DLT_EN10MB)
   {
-    vlan_hdr=(struct ether_vlan_header *)data;
-    vlan=ntohs(vlan_hdr->evl_tag);
-    if (ntohs(vlan_hdr->evl_proto)!=ETHERTYPE_IP)
-      return;
-    ip_hdr = (struct ip *)(vlan_hdr+1);
-  }
-  else
-#endif
-  if (ntohs(eth_hdr->ether_type)==ETHERTYPE_IP)
-    ip_hdr = (struct ip *)(eth_hdr+1);
-  else
-    return;
-#if 0
-  if (snap_traf>0)
-  { int in;
-    if (memcmp(eth_hdr->ether_shost, my_mac, ETHER_ADDR_LEN)==0)
-      in=0;
-    else if (memcmp(eth_hdr->ether_dhost, my_mac, ETHER_ADDR_LEN)==0)
-      in=1;
-    else
-      in=-1;
-    fprintf(fsnap, "%s %u.%u.%u.%u -> %u.%u.%u.%u %lu bytes ("
+    eth_hdr = (struct ether_header *)data;
 #ifndef NO_TRUNK
-            "vlan %d, "
-#endif
-            "mac %02x%02x.%02x%02x.%02x%02x)\n",
-            (in ? (in==1 ? "<-" : "??") : "->"),
-            ((char *)(&(ip_hdr->ip_src)))[0],
-            ((char *)(&(ip_hdr->ip_src)))[1],
-            ((char *)(&(ip_hdr->ip_src)))[2],
-            ((char *)(&(ip_hdr->ip_src)))[3],
-            ((char *)(&(ip_hdr->ip_dst)))[0],
-            ((char *)(&(ip_hdr->ip_dst)))[1],
-            ((char *)(&(ip_hdr->ip_dst)))[2],
-            ((char *)(&(ip_hdr->ip_dst)))[3],
-            (unsigned long)hdr->len, 
-#ifndef NO_TRUNK
-            vlan,
-#endif
-            in ? eth_hdr->ether_shost[0] : eth_hdr->ether_dhost[0],
-            in ? eth_hdr->ether_shost[1] : eth_hdr->ether_dhost[1],
-            in ? eth_hdr->ether_shost[2] : eth_hdr->ether_dhost[2],
-            in ? eth_hdr->ether_shost[3] : eth_hdr->ether_dhost[3],
-            in ? eth_hdr->ether_shost[4] : eth_hdr->ether_dhost[4],
-            in ? eth_hdr->ether_shost[5] : eth_hdr->ether_dhost[5]);
-    if ((snap_traf-=(long)hdr->len) <= 0)
-    { fclose(fsnap);
-      fsnap=NULL;
-      snap_traf=0;
+    vlan=0;
+    if (ntohs(eth_hdr->ether_type)==ETHERTYPE_VLAN)
+    {
+      vlan_hdr=(struct ether_vlan_header *)data;
+      vlan=ntohs(vlan_hdr->evl_tag);
+      if (ntohs(vlan_hdr->evl_proto)!=ETHERTYPE_IP)
+        return;
+      ip_hdr = (struct ip *)(vlan_hdr+1);
     }
-  }
+    else
 #endif
-  add_stat((u_char *)&eth_hdr->ether_shost, (u_char *)&eth_hdr->ether_dhost,
+    if (ntohs(eth_hdr->ether_type)==ETHERTYPE_IP)
+      ip_hdr = (struct ip *)(eth_hdr+1);
+    else
+      return;
+  } else if (linktype == DLT_RAW)
+  { eth_hdr = NULL;
+#ifndef NO_TRUNK
+    vlan = 0;
+#endif
+    ip_hdr = (struct ip *)data;
+  } else
+    return;
+  add_stat(eth_hdr ? (u_char *)&eth_hdr->ether_shost : NULL,
+	   eth_hdr ? (u_char *)&eth_hdr->ether_dhost : NULL,
            *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
-           hdr->len-((char *)ip_hdr - (char *)eth_hdr),
+           hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
 #ifndef NO_TRUNK
            vlan,
 #endif
@@ -230,6 +201,7 @@ int main(int argc, char *argv[])
       { fprintf(f, "%u\n", (unsigned)getpid());
         fclose(f);
       }
+      linktype = pcap_datalink(pk);
       pcap_loop(pk, -1, dopkt, NULL);
       unlink(pidfile);
     }
@@ -240,3 +212,4 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+
