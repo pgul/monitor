@@ -95,7 +95,7 @@ left:
     goto left;
   }
   if (fsnap)
-  { fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s) %lu bytes ("
+  { fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK
         "vlan %d, "
 #endif
@@ -104,7 +104,7 @@ left:
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
         pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
-        len,
+        (in ? "in" : "out"), len,
 #ifndef NO_TRUNK
         vlan,
 #endif
