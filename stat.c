@@ -362,17 +362,179 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
 }
 #endif
 
+#ifdef DO_MYSQL
+#include <mysql.h>
+#include <getopt.h>
+
+#if !defined(MYSQL_VERSION_ID) || MYSQL_VERSION_ID<32224
+#define mysql_field_count mysql_num_fields
+#endif
+
+#define create_utable \
+       "CREATE TABLE IF NOT EXISTS %s (
+              user CHAR(20) NOT NULL,
+              user_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+              UNIQUE (user)
+	)"
+#define create_table \
+       "CREATE TABLE IF NOT EXISTS %s (
+              time TIMESTAMP NOT NULL,
+              user_id INT UNSIGNED NOT NULL,
+              src ENUM('ua', 'world') NOT NULL,
+              dst ENUM('ua', 'world') NOT NULL,
+              direction ENUM('in', 'out') NOT NULL,
+              bytes INT UNSIGNED NOT NULL,
+              INDEX (user_id),
+              INDEX (time)
+	)"
+#define create_mtable \
+        "CREATE TABLE IF NOT EXISTS %s (
+              time TIMESTAMP NOT NULL,
+	      mac CHAR(16) NOT NULL,
+	      class ENUM('ua', 'world') NOT NULL,
+              direction ENUM('in', 'out') NOT NULL,
+              bytes INT UNSIGNED NOT NULL,
+              INDEX (mac),
+	      INDEX (time)
+	)"
+#define create_itable \
+        "CREATE TABLE IF NOT EXISTS %s (
+              mac CHAR(16) NOT NULL,
+              ip  CHAR(16) NOT NULL,
+              UNIQUE (mac, ip)
+	)"
+
+static void mysql_err(MYSQL *conn, char *message)
+{
+	fprintf(stderr, "%s\n", message);
+	if (conn)
+		fprintf(stderr, "Error %u (%s)\n",
+		        mysql_errno(conn), mysql_error(conn));
+}
+
+static MYSQL *do_connect(char *host_name, char *user_name, char *password,
+           char *db_name, unsigned port_num, char *socket_name, unsigned flags)
+{
+	MYSQL *conn;
+
+	conn = mysql_init(NULL);
+	if (conn==NULL)
+	{	mysql_err(NULL, "mysql_init() failed");
+		return NULL;
+	}
+#if defined(MYSQL_VERSION_ID) && MYSQL_VERSION_ID >= 32200
+	if (mysql_real_connect(conn, host_name, user_name, password,
+	             db_name, port_num, socket_name, flags) == NULL)
+	{
+		mysql_err(conn, "mysql_real_connect() failed");
+		return NULL;
+	}
+#else
+	if (mysql_real_connect(conn, host_name, user_name, password,
+	             port_num, socket_name, flags) == NULL)
+	{
+		mysql_err(conn, "mysql_real_connect() failed");
+		return NULL;
+	}
+	if (db_name)
+	{	if (mysql_select_db(conn, dbname))
+		{	mysql_err(conn, "mysql_select_db() failed");
+			return NULL;
+		}
+	}
+#endif
+	return conn;
+}
+
+static void do_disconnect(MYSQL *conn)
+{
+	if (conn) mysql_close(conn);
+}
+
+void mysql_start(void)
+{
+	char *myargv_[] = {"monitor", NULL };
+	char **myargv=myargv_;
+	int  myargc=1, c, option_index=0;
+	const char *groups[] = {"client", "monitor", NULL };
+	struct option long_options[] = {
+		{"host",     required_argument, NULL, 'h'},
+		{"user",     required_argument, NULL, 'u'},
+		{"password", required_argument, NULL, 'p'},
+		{"port",     required_argument, NULL, 'P'},
+		{"socket",   required_argument, NULL, 'S'},
+		{"table",    required_argument, NULL, 'T'},
+		{"utable",   required_argument, NULL, 'U'},
+		{"mtable",   required_argument, NULL, 'M'},
+		{"itable",   required_argument, NULL, 'I'},
+		{"db",       required_argument, NULL, 'D'},
+		{0, 0, 0, 0 }
+	};
+
+	my_init();
+	load_defaults("my", groups, &myargc, &myargv);
+	while ((c = getopt_long(myargc, myargv, "h:p::u:P:S:T:U:D:", long_options, &option_index)) != EOF)
+	{	switch (c)
+		{
+			case 'h':
+				strncpy(mysql_host, optarg, sizeof(mysql_host));
+				break;
+			case 'u':
+				strncpy(mysql_user, optarg, sizeof(mysql_user));
+				break;
+			case 'p':
+				strncpy(mysql_pwd, optarg, sizeof(mysql_pwd));
+				break;
+			case 'P':
+				mysql_port = (unsigned)atoi(optarg);
+				break;
+			case 'S':
+				strncpy(mysql_socket, optarg, sizeof(mysql_socket));
+				break;
+			case 'T':
+				strncpy(mysql_table, optarg, sizeof(mysql_table));
+				break;
+			case 'U':
+				strncpy(mysql_utable, optarg, sizeof(mysql_utable));
+				break;
+			case 'M':
+				strncpy(mysql_mtable, optarg, sizeof(mysql_mtable));
+				break;
+			case 'I':
+				strncpy(mysql_itable, optarg, sizeof(mysql_itable));
+				break;
+			case 'D':
+				strncpy(mysql_db, optarg, sizeof(mysql_db));
+				break;
+		}
+	}
+}
+#endif
+
 void write_stat(void)
 {
   int i, j, k;
   struct linktype *pl;
   FILE *fout;
+#ifdef DO_MYSQL
+  MYSQL *conn = NULL;
+  char table[256], mtable[256], query[1024], stamp[15];
+  int  mysql_connected=0;
+  int  table_created=0, utable_created=0, mtable_created=0, itable_created=0;
+  struct tm *tm_now;
+#endif
 
   last_write=time(NULL);
-  fout = fopen(logname, "a");
+  fout=fopen(logname, "a");
   if (fout==NULL) return;
 #ifdef DO_PERL
   plstart();
+#endif
+#ifdef DO_MYSQL
+  tm_now=localtime(&last_write);
+  strftime( table, sizeof( table), mysql_table,   tm_now);
+  strftime(mtable, sizeof(mtable), mysql_mtable,  tm_now);
+  strftime(stamp,  sizeof(stamp), "%Y%m%d%H%M%S", tm_now);
 #endif
   fprintf(fout, "----- %s", ctime(&last_write));
   for (pl=linkhead; pl; pl=pl->next)
@@ -384,6 +546,124 @@ void write_stat(void)
 #ifdef DO_PERL
             plwrite(pl->name, uaname[j], uaname[k], (i ? "in" : "out"),
                     pl->bytes[i][j][k]);
+#endif
+#ifdef DO_MYSQL
+            if (!mysql_connected)
+            {
+              conn = do_connect(
+                  mysql_host[0] ? mysql_host : NULL,
+                  mysql_user[0] ? mysql_user : NULL,
+                  mysql_pwd[0] ? mysql_pwd : NULL,
+                  mysql_db[0] ? mysql_db : NULL,
+                  mysql_port,
+                  mysql_socket[0] ? mysql_socket : NULL,
+                  0);
+              mysql_connected=1;
+            }
+            if (conn && !utable_created)
+            {
+              snprintf(query, sizeof(query)-1, create_utable, mysql_utable);
+              if (mysql_query(conn, query) != 0)
+              { mysql_err(conn, "mysql_query() failed");
+                do_disconnect(conn);
+                conn=NULL;
+              }
+              utable_created=1;
+            }
+            if (conn && !table_created)
+            {
+              snprintf(query, sizeof(query)-1, create_table, table);
+              if (mysql_query(conn, query) != 0)
+              { mysql_err(conn, "mysql_query() failed");
+                do_disconnect(conn);
+                conn=NULL;
+              }
+              table_created=1;
+            }
+            if (conn && !pl->user_id)
+            { char *p;
+              MYSQL_RES *res_set;
+              MYSQL_ROW row;
+
+              strcpy(query, "SELECT user_id FROM ");
+              strcat(query, mysql_utable);
+              strcat(query, "WHERE user = '");
+              p=query+strlen(query);
+              p+=mysql_escape_string(p, pl->name, strlen(pl->name));
+              strcpy(p, "'");
+              if (mysql_query(conn, query) != 0)
+              { mysql_err(conn, "mysql_query() failed");
+                do_disconnect(conn);
+                conn=NULL;
+              }
+              else
+              {
+                res_set = mysql_store_result(conn);
+                if (res_set == NULL)
+                { mysql_err(conn, "mysql_store_result() failed");
+                  do_disconnect(conn);
+                  conn=NULL;
+                }
+                else
+                {
+                  if ((row = mysql_fetch_row(res_set)) != NULL)
+                    pl->user_id = atoi(row[0]);
+                  mysql_free_result(res_set);
+                }
+              }
+              if (conn && !pl->user_id)
+              { /* new user, add to table */
+                strcpy(query, "INSERT ");
+                strcat(query, mysql_utable);
+                strcat(query, "SET user='");
+                p=query+strlen(query);
+                p+=mysql_escape_string(p, pl->name, strlen(pl->name));
+                strcpy(p, "'");
+                if (mysql_query(conn, query) != 0)
+                { mysql_err(conn, "mysql_query() failed");
+                  do_disconnect(conn);
+                  conn=NULL;
+                }
+                else
+                { if (mysql_query(conn, "SELECT LAST_INSERT_ID()") != 0)
+                  { mysql_err(conn, "mysql_query() failed");
+                    do_disconnect(conn);
+                    conn=NULL;
+                  }
+                  else
+                  {
+                    res_set = mysql_store_result(conn);
+                    if (res_set == NULL)
+                    { mysql_err(conn, "mysql_store_result() failed");
+                      do_disconnect(conn);
+                      conn=NULL;
+                    }
+                    else
+                    {
+                      if ((row = mysql_fetch_row(res_set)) != NULL)
+                        pl->user_id = atoi(row[0]);
+                      mysql_free_result(res_set);
+                    }
+                  }
+                }
+              }
+              if (conn && !pl->user_id)
+              { fprintf(stderr, "internal error working with MySQL server\n");
+                do_disconnect(conn);
+                conn=NULL;
+              }
+            }
+            if (conn)
+            { sprintf(query,
+                 "INSERT %s VALUES('%s', '%lu', '%s', '%s', '%s', '%lu')",
+                 table, stamp, pl->user_id, uaname[j], uaname[k],
+                 (i ? "in" : "out"), pl->bytes[i][j][k]);
+              if (mysql_query(conn, query) != 0)
+              { mysql_err(conn, "mysql_query() failed");
+                do_disconnect(conn);
+                conn=NULL;
+              }
+            }
 #endif
             fprintf(fout, "%s.%s2%s.%s: %lu bytes\n",
                       pl->name, uaname[j], uaname[k], (i ? "in" : "out"),
@@ -397,20 +677,52 @@ void write_stat(void)
             for (j=0; j<NCLASSES; j++)
               if (pl->mactable[k]->bytes[i][j])
               { 
-#ifdef DO_PERL
-		char mac[15];
-		sprintf(mac, "%02x%02x.%02x%02x.%02x%02x",
+                char mac[15];
+                sprintf(mac, "%02x%02x.%02x%02x.%02x%02x",
                         pl->mactable[k]->mac[0], pl->mactable[k]->mac[1],
                         pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
                         pl->mactable[k]->mac[4], pl->mactable[k]->mac[5]);
+#ifdef DO_PERL
 		plwritemac(mac, uaname[j], (i ? "in" : "out"),
                            pl->mactable[k]->bytes[i][j]);
 #endif
-                fprintf(fout, "%02x%02x.%02x%02x.%02x%02x.%s.%s: %lu bytes",
-                        pl->mactable[k]->mac[0], pl->mactable[k]->mac[1],
-                        pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
-                        pl->mactable[k]->mac[4], pl->mactable[k]->mac[5],
-                        uaname[j], (i ? "in" : "out"),
+#ifdef DO_MYSQL
+                if (!mysql_connected)
+                {
+                  conn = do_connect(
+                      mysql_host[0] ? mysql_host : NULL,
+                      mysql_user[0] ? mysql_user : NULL,
+                      mysql_pwd[0] ? mysql_pwd : NULL,
+                      mysql_db[0] ? mysql_db : NULL,
+                      mysql_port,
+                      mysql_socket[0] ? mysql_socket : NULL,
+                      0);
+                  mysql_connected=1;
+                }
+                if (conn && !mtable_created)
+                {
+                  snprintf(query, sizeof(query)-1, create_mtable, mtable);
+                  if (mysql_query(conn, query) != 0)
+                  { mysql_err(conn, "mysql_query() failed");
+                    do_disconnect(conn);
+                    conn=NULL;
+                  }
+                  mtable_created=1;
+                }
+                if (conn)
+                { sprintf(query,
+                     "INSERT %s VALUES('%s', '%s', '%s', '%s', '%lu')",
+                     mtable, stamp, mac, uaname[j],
+                     (i ? "in" : "out"), pl->bytes[i][j][k]);
+                  if (mysql_query(conn, query) != 0)
+                  { mysql_err(conn, "mysql_query() failed");
+                    do_disconnect(conn);
+                    conn=NULL;
+                  }
+                }
+#endif
+                fprintf(fout, "%s.%s.%s: %lu bytes",
+                        mac, uaname[j], (i ? "in" : "out"),
                         pl->mactable[k]->bytes[i][j]);
                 pl->mactable[k]->bytes[i][j]=0;
                 if (pl->mactable[k]->nip)
@@ -419,6 +731,25 @@ void write_stat(void)
                   fprintf(fout, " (");
                   for (nip=0; nip<pl->mactable[k]->nip; nip++)
                   { unsigned long n_remote = htonl(pl->mactable[k]->ip[nip]);
+#ifdef DO_MYSQL
+                    if (conn && !itable_created)
+                    {
+                      snprintf(query, sizeof(query)-1, create_itable, mysql_itable);
+                      if (mysql_query(conn, query) != 0)
+                      { mysql_err(conn, "mysql_query() failed");
+                        do_disconnect(conn);
+                        conn=NULL;
+                      }
+                      itable_created=1;
+                    }
+                    if (conn)
+                    { sprintf(query,
+                         "INSERT %s VALUES('%s', '%s')",
+                         mysql_itable, mac,
+                         inet_ntoa(*(struct in_addr *)&n_remote));
+                      mysql_query(conn, query); /* ignore error if not unique */
+                    }
+#endif
                     fprintf(fout, "%s%s",
                             inet_ntoa(*(struct in_addr *)&n_remote),
                             (nip+1==pl->mactable[k]->nip ? ")\n" : ", "));
@@ -436,5 +767,8 @@ void write_stat(void)
   fclose(fout);
 #ifdef DO_PERL
   plstop();
+#endif
+#ifdef DO_MYSQL
+  if (conn) do_disconnect(conn);
 #endif
 }

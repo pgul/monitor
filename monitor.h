@@ -39,6 +39,9 @@ struct mactype {
 
 struct linktype {
 	char name[32];
+#ifdef DO_MYSQL
+	unsigned long user_id;
+#endif
 	unsigned long bytes[2][NCLASSES][NCLASSES];
 	struct linktype *next;
 	struct mactype **mactable;
@@ -85,6 +88,18 @@ classtype getclass(unsigned long addr);
 int  init_map(void);
 void freeshmem(void);
 #ifdef DO_PERL
-extern char perlfile[256], perlstart[256], perlwrite[256];
-extern char perlwritemac[256], perlstop[256];
+void exitperl(void);
+int  PerlStart(void);
+
+extern char perlfile[], perlstart[], perlwrite[];
+extern char perlwritemac[], perlstop[];
+#endif
+#ifdef DO_MYSQL
+extern char mysql_user[256], mysql_pwd[256], mysql_host[256];
+extern char mysql_socket[256], mysql_db[256];
+extern char mysql_table[256], mysql_utable[256], mysql_mtable[256];
+extern char mysql_itable[256];
+extern unsigned mysql_port;
+
+void mysql_start(void);
 #endif
