@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
   char ebuf[PCAP_ERRBUF_SIZE]="";
   int i;
   FILE *f;
+  char *piface;
 
   fflush(stderr);
   i = dup(fileno(stderr));
@@ -253,13 +254,17 @@ int main(int argc, char *argv[])
   { fprintf(origerr, "Config error\n");
     return 1;
   }
-  pk = pcap_open_live(iface, MTU, 1, 0, ebuf);
+  if (strcmp(iface, "all") == 0)
+    piface = NULL;
+  else
+    piface = iface;
+  pk = pcap_open_live(piface, MTU, 1, 0, ebuf);
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
   if (pk)
   { real_linktype = pcap_datalink(pk);
     pcap_close(pk);
   }
-  pk = pcap_open_live_new(iface, MTU, -1, 0, ebuf, 0, 0, NULL);
+  pk = pcap_open_live_new(piface, MTU, -1, 0, ebuf, 0, 0, NULL);
 #endif
   for (i=0; i<=argc; i++)
     saved_argv[i]=argv[i];
