@@ -102,17 +102,17 @@ left:
         (pa->vlan==(unsigned short)-1 || pa->vlan==vlan) &&
 #endif
         (pa->ip==0xfffffffful || ((pa->reverse ? local : remote) & pa->mask)==pa->ip) &&
-	(pa->proto==(unsigned short)-1 || pa->proto==proto) &&
+        (pa->proto==(unsigned short)-1 || pa->proto==proto) &&
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
     { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&
-	  (pa->proto==(unsigned short)-1 || pa->proto==proto))
+          (pa->proto==(unsigned short)-1 || pa->proto==proto))
       { find = 1;
-	in = 0;
+        in = 0;
       } else if ((pa->ip==0xfffffffful || (dst_ip & pa->mask)==pa->ip) &&
-	  (pa->proto==(unsigned short)-1 || pa->proto==proto))
+                 (pa->proto==(unsigned short)-1 || pa->proto==proto))
       { find = 1;
-	in = 1;
+        in = 1;
       }
     }
     if (find)
@@ -134,14 +134,14 @@ left:
 #ifndef NO_TRUNK
         vlan,
 #endif
-	remote_mac[0], remote_mac[1], remote_mac[2],
-	remote_mac[3], remote_mac[4], remote_mac[5]);
+        remote_mac[0], remote_mac[1], remote_mac[2],
+        remote_mac[3], remote_mac[4], remote_mac[5]);
     else
       fprintf(fsnap, "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
         pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
-	((in^pa->reverse) ? "in" : "out"), len);
+        ((in^pa->reverse) ? "in" : "out"), len);
     fflush(fsnap);
     if ((snap_traf-=len) <= 0)
     { fclose(fsnap);
@@ -186,9 +186,9 @@ left:
   if ((pa->link->bytes[in^pa->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
       || pa->link->nmacs>maxmacs/2)
     write_stat();
-  if (!pa->fallthru)
-    break;
     }
+    if (!pa->fallthru)
+      break;
   }
   sigprocmask(SIG_SETMASK, &oset, NULL);
   if (leftpacket) goto left;

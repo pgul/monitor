@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <net/if.h>
 #ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
@@ -68,6 +69,9 @@ int	pcap_compile(pcap_t *, struct bpf_program *, char *, int, bpf_u_int32);
 int	pcap_setfilter(pcap_t *, struct bpf_program *);
 
 #endif
+#ifndef PCAP_ERRBUF_SIZE
+#define PCAP_ERRBUF_SIZE 256
+#endif
 #include "monitor.h"
 
 #ifndef NO_TRUNK
@@ -91,7 +95,7 @@ struct ether_vlan_header {
 
 time_t last_write, last_reload;
 long snap_traf;
-FILE *fsnap;
+FILE *fsnap, *origerr;
 pcap_t *pk;
 char *saved_argv[20];
 char *confname;
@@ -113,7 +117,7 @@ void hup(int signo)
     reload_acl();
   if (signo==SIGUSR2)
     if (config(confname))
-    { fprintf(stderr, "Config error!\n");
+    { fprintf(origerr, "Config error!\n");
       exit(1);
     }
   if (signo==SIGINFO)
@@ -145,7 +149,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct ether_vlan_header *vlan_hdr;
   int vlan;
 #endif
-  // fprintf(stderr, "#"); fflush(stderr);
+  // fprintf(origerr, "#"); fflush(origerr);
   if (linktype == DLT_EN10MB)
   {
     if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
@@ -179,7 +183,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   } else
     return;
   add_stat(eth_hdr ? (u_char *)&eth_hdr->ether_shost : NULL,
-	   eth_hdr ? (u_char *)&eth_hdr->ether_dhost : NULL,
+           eth_hdr ? (u_char *)&eth_hdr->ether_dhost : NULL,
            *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
            hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
 #ifndef NO_TRUNK
@@ -194,15 +198,31 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 
 int main(int argc, char *argv[])
 {
-  char ebuf[4096]="";
+  char ebuf[PCAP_ERRBUF_SIZE]="";
   int i;
+  FILE *f;
 
+  fflush(stderr);
+  i = dup(fileno(stderr));
+  if (i!=-1)
+  { if ((origerr=fdopen(i, "w")) == NULL)
+      close(i);
+  } else
+    origerr=NULL;
+  if (origerr)
+  { f = fopen("/dev/null", "w");
+    if (f)
+    { dup2(fileno(f), fileno(stderr));
+      fclose(f);
+    }
+  } else
+    origerr = stderr;
   if (argc>1)
     confname=argv[1];
   else
     confname=CONFNAME;
   if (config(confname))
-  { fprintf(stderr, "Config error\n");
+  { fprintf(origerr, "Config error\n");
     return 1;
   }
   pk = pcap_open_live(iface, MTU, 1, 0, ebuf);
@@ -218,32 +238,38 @@ int main(int argc, char *argv[])
     signal(SIGTERM, hup);
     signal(SIGINFO, hup);
     if (reload_acl())
-      printf("reload acl error!\n");
+      fprintf(origerr, "reload acl error!\n");
     else
-    { FILE *f=fopen(pidfile, "w");
+    { f=fopen(pidfile, "w");
       if (f)
       { fprintf(f, "%u\n", (unsigned)getpid());
         fclose(f);
       }
       linktype = pcap_datalink(pk);
       if (linktype != DLT_EN10MB && linktype != DLT_RAW)
-        printf("Unsupported link type %s!\n",
+        fprintf(origerr, "Unsupported link type %s!\n",
           (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0])) ? dlt[linktype] : "unspec");
       else
       {
         struct bpf_program fcode;
         bpf_u_int32 localnet, netmask;
-        pcap_lookupnet(iface, &localnet, &netmask, ebuf);
+        if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
+        { fprintf(origerr, "pcap_lookupnet error: %s\n", ebuf);
+          netmask = localnet = 0;
+        }
         if (pcap_compile(pk, &fcode, NULL, 1, netmask) == 0)
           pcap_setfilter(pk, &fcode);
-        pcap_loop(pk, -1, dopkt, NULL);
+// fprintf(origerr, "localnet %s, ", inet_ntoa(*(struct in_addr *)&localnet));
+// fprintf(origerr, "netmask %s\n", inet_ntoa(*(struct in_addr *)&netmask));
+        pcap_loop(pk, -1, dopkt, ebuf);
+        fprintf(origerr, "pcap_loop error: %s\n", ebuf);
       }
       unlink(pidfile);
     }
     pcap_close(pk);
   }
   else
-  { printf("pcap_open_live fails: %s\n", ebuf);
+  { fprintf(origerr, "pcap_open_live fails: %s\n", ebuf);
   }
   return 0;
 }
