@@ -24,7 +24,6 @@
 #endif
 
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
-static char *uaname[NCLASSES]={"world","ua"};
 extern long snap_traf;
 extern FILE *fsnap;
 
@@ -129,7 +128,8 @@ left:
         ((in^pa->reverse) ? "<-" : "->"),
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
-        pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
+        pa->link->name,
+        uaname[uaindex[find_mask(src_ip)]], uaname[uaindex[find_mask(dst_ip)]],
         ((in^pa->reverse) ? "in" : "out"), len,
 #ifndef NO_TRUNK
         vlan,
@@ -147,7 +147,8 @@ left:
 #endif
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
-        pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
+        pa->link->name,
+        uaname[uaindex[find_mask(src_ip)]], uaname[uaindex[find_mask(dst_ip)]],
         ((in^pa->reverse) ? "in" : "out"), len);
     fflush(fsnap);
     if ((snap_traf-=len) <= 0)
@@ -156,8 +157,8 @@ left:
       snap_traf=0;
     }
   }
-  src_ua=find_mask(src_ip);
-  dst_ua=find_mask(dst_ip);
+  src_ua=uaindex[find_mask(src_ip)];
+  dst_ua=uaindex[find_mask(dst_ip)];
   if (remote_mac && (mactable=pa->link->mactable) != NULL)
   { for (key=*(unsigned short *)(remote_mac+4) % maxmacs;
          mactable[key] && memcmp(remote_mac,mactable[key]->mac,ETHER_ADDR_LEN);

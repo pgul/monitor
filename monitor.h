@@ -8,12 +8,12 @@
 #define PIDFILE		"/var/run/monitor.pid"
 #define WRITE_INTERVAL	(60*60)
 #define RELOAD_INTERVAL	(60*10)
-#define NCLASSES	2
 #define MAXMACS		(16*256) /* size of hash-table */
 #define MAXCOLOIP	16
 #define MAXPREFIX       24
 
 #define NBITS           2
+#define NCLASSES	(1<<NBITS)
 #define MAPSIZE         (1<<MAXPREFIX)/(8/NBITS)
 #define MAPKEY          (*(long *)"gul@")
 
@@ -53,9 +53,11 @@ extern time_t last_write, last_reload;
 extern struct linktype *linkhead;
 extern char iface[];
 extern char logname[], snapfile[], aclname[], pidfile[];
-extern int write_interval, reload_interval;
-extern int maxmacs, maxcoloip, fromshmem;
+extern int  write_interval, reload_interval;
+extern int  maxmacs, maxcoloip, fromshmem;
 extern long mapkey;
+extern char uaname[NCLASSES][32];
+extern int  uaindex[NCLASSES];
 
 int find_mask(unsigned long addr);
 int reload_acl(void);
