@@ -111,7 +111,9 @@ static char *dlt[] = {
  "null", "ethernet", "eth3m", "ax25", "pronet", "chaos",
  "ieee802", "arcnet", "slip", "ppp", "fddi", "llc/snap atm", "raw ip",
  "bsd/os slip", "bsd/os ppp", "lane 802.3", "atm" };
+#ifdef SIOCGIFHWADDR
 static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
+#endif
 
 void hup(int signo)
 {
@@ -299,6 +301,8 @@ int main(int argc, char *argv[])
       }
       else
       {
+        struct bpf_program fcode;
+        bpf_u_int32 localnet, netmask;
 #ifdef SIOCGIFHWADDR
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
         if (real_linktype == DLT_EN10MB
@@ -320,10 +324,6 @@ int main(int argc, char *argv[])
           }
         }
 #endif
-#endif
-
-        struct bpf_program fcode;
-        bpf_u_int32 localnet, netmask;
         if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
         { fprintf(origerr, "pcap_lookupnet error: %s\n", ebuf);
           netmask = localnet = 0;
