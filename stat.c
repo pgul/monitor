@@ -132,11 +132,21 @@ left:
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
     { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&
-          (pa->proto==(unsigned short)-1 || pa->proto==proto))
+          (pa->proto==(unsigned short)-1 || pa->proto==proto)
+#ifdef WITH_PORTS
+          && (pa->port1==(unsigned short)-1 || ((pa->port1>=dport) && (pa->port2<=dport)))
+          && (pa->lport1==(unsigned short)-1 || ((pa->lport1>=sport) && (pa->lport2<=sport)))
+#endif
+          )
       { find = 1;
         if (in==-1) in = 0;
       } else if ((pa->ip==0xfffffffful || (dst_ip & pa->mask)==pa->ip) &&
-                 (pa->proto==(unsigned short)-1 || pa->proto==proto))
+                 (pa->proto==(unsigned short)-1 || pa->proto==proto)
+#ifdef WITH_PORTS
+                 && (pa->port1==(unsigned short)-1 || ((pa->port1>=sport) && (pa->port2<=sport)))
+                 && (pa->lport1==(unsigned short)-1 || ((pa->lport1>=dport) && (pa->lport2<=dport)))
+#endif
+                )
       { find = 1;
         if (in==-1) in = 1;
       }
