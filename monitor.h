@@ -72,3 +72,4 @@ void write_stat(void);
 int  config(char *name);
 char getclass(unsigned long addr);
 int  init_map(void);
+void freeshmem(void);

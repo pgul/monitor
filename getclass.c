@@ -19,7 +19,7 @@ char getclass(unsigned long addr)
 	return (map[offs] & mask) >> bits;;
 }
 
-static void freeshmem(void)
+void freeshmem(void)
 {
 	struct shmid_ds buf;
 	if (map)

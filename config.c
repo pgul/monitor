@@ -27,7 +27,7 @@ char pidfile[256]=PIDFILE;
 int write_interval=WRITE_INTERVAL, reload_interval=RELOAD_INTERVAL;
 int maxmacs=MAXMACS, maxcoloip=MAXCOLOIP;
 long mapkey;
-int fromshmem=0;
+int fromshmem;
 
 int config(char *name)
 {
@@ -37,6 +37,8 @@ int config(char *name)
   char str[256];
   char *p;
 
+  if (fromshmem) freeshmem();
+  fromshmem=0;
   mapkey=MAPKEY;
   f = fopen(name, "r");
   if (f==NULL)
