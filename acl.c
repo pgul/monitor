@@ -36,13 +36,25 @@ static int reload_one_acl(char **acl, char *acl_name)
   }
   while (fgets(str, sizeof(str), facl))
   {
+#if 1
     if (str[0]!='*') continue;
     for (p=str+3; isdigit(*p) || *p=='.'; p++);
     if (*p=='/') i=atoi(p+1);
     else i=24;
-    if (i<0 || i>24) continue;
+    if (i<=0 || i>24) continue;
     *p='\0';
     addr=ntohl(inet_addr(str+3));
+#else
+    char *p1;
+    if (str[0]!='O') continue;
+    for (p=str+5; !isdigit(*p); p++);
+    for (p1=p; isdigit(*p1) || *p1=='.'; p1++);
+    if (*p1 != '/') continue;
+    *p1='\0';
+    i=atoi(p1+1);
+    if (i<=0 || i>24) continue;
+    addr=ntohl(inet_addr(p));
+#endif
     if (addr==0) continue; /* default route */
     addr>>=8;
     if (i<=21)
@@ -64,16 +76,19 @@ static int reload_one_acl(char **acl, char *acl_name)
 
 int reload_acl(void)
 {
-  return reload_one_acl(&acl, ACLNAME);
+  if (fromshmem) return 0;
+  return reload_one_acl(&acl, aclname);
 }
 
 int find_mask(unsigned long remote)
 {
-  remote=remote>>8;
-  if ((remote & 0xffffe0) == 0x3e9500 ||
-      (remote & 0xff0000) == 0x0a0000 ||
-      (remote & 0xff0000) == 0x7f0000)
-    return 2; /* local */
+  if (fromshmem) return getclass(remote);
+  if (remote==0xe0000005ul)
+    return 1; /* ospf multicast */
+  if ((remote & 0xff000000u) == 0x0a000000u ||
+      (remote & 0xff000000u) == 0x7f000000u)
+    return 1; /* local */
+  remote>>=8;
   if (acl[remote >> 3] & bit[remote & 7])
     return 1; /* ua */
   return 0;
@@ -81,7 +96,7 @@ int find_mask(unsigned long remote)
 
 #ifdef DEBUG
 time_t last_reload;
-char *uaname[]={"world","ua","local"};
+char *uaname[]={"world","ua"};
 int main(int argc, char *argv[])
 {
   unsigned long addr;
