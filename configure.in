@@ -37,14 +37,14 @@ esac
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(inet_addr)
-case x$ac_cv_func_inet_addr in
+AC_CHECK_FUNCS(inet_aton)
+case x$ac_cv_func_inet_aton in
   xno)
-    AC_MSG_CHECKING(for inet_addr in -lxnet)
+    AC_MSG_CHECKING(for inet_aton in -lxnet)
     OLD_LIBS=$LIBS
     LIBS="$LIBS -lxnet"
-    AC_TRY_LINK([#include <arpa/inet.h>],[inet_addr("");],
-          AC_MSG_RESULT(yes), AC_MSG_RESULT(no); AC_ERROR(no inet_addr() found))
+    AC_TRY_LINK([#include <arpa/inet.h>],[inet_aton("");],
+                AC_MSG_RESULT(yes), AC_MSG_RESULT(no) AC_ERROR(no aton() found))
     ;;
 esac
 
