@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
   FILE *f;
   char *piface;
 
-  for (i=0; i<=argc; i++)
+  for (i=0; i<=argc && i<sizeof(saved_argv)/sizeof(saved_argv[0]); i++)
     saved_argv[i]=argv[i];
   confname=CONFNAME;
   daemonize=0;
