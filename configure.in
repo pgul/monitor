@@ -115,8 +115,10 @@ case x$withval in
   *)
     AC_DEFINE(WITH_PORTS)
     AC_MSG_CHECKING(for th_sport in struct tcphdr)
-    AC_TRY_COMPILE([#include <netinet/tcp.h>],
-	[struct tcphdr th; th.th_sport;],
+    AC_TRY_COMPILE([
+	#include <sys/types.h>
+	#include <netinet/tcp.h>
+	], [struct tcphdr th; th.th_sport;],
 	AC_MSG_RESULT(yes),
 	AC_DEFINE_UNQUOTED(th_sport, source)
 	AC_DEFINE_UNQUOTED(th_dport, dest)
