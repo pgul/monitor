@@ -4,11 +4,15 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/time.h>
-#include <net/ethernet.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#ifdef HAVE_NET_ETHERNET_H
+#include <net/ethernet.h>
+#else
+#include <netinet/if_ether.h>
+#endif
 #include "monitor.h"
 
 #ifndef SIGINFO
