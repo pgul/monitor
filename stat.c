@@ -274,7 +274,7 @@ left:
         { if (pcache->attr->link)
           { if (remote_mac && pcache->attr->link->mactable)
               addmactable(pcache->attr, cache[hash].src_ua, cache[hash].dst_ua, remote_mac, remote, in, len);
-            found(pcache->attr->link, cache[hash].src_ua, pcache[hash].dst_ua, in^pcache->attr->reverse, len);
+            found(pcache->attr->link, cache[hash].src_ua, cache[hash].dst_ua, in^pcache->attr->reverse, len);
           }
           if (pcache->next == -1) break;
         }
