@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
 #else
@@ -40,6 +41,26 @@ unsigned mysql_port;
 char perlfile[256], perlstart[256], perlwrite[256];
 char perlwritemac[256], perlstop[256];
 #endif
+
+static void read_proto(char *p, u_short *proto)
+{
+  if (isdigit(*p))
+    *proto=atoi(p);
+  else
+  {
+    struct protoent *pe;
+    char c, *p1;
+    for (p1=p; *p1 && !isspace(*p1); p1++);
+    c=*p1;
+    *p1='\0';
+    pe=getprotobyname(p);
+    if (pe==NULL)
+      printf("Unknown protocol %s\n", p);
+    else
+      *proto=pe->p_proto;
+    *p1=c;
+  }
+}
 
 int config(char *name)
 {
@@ -298,7 +319,7 @@ int config(char *name)
         pa->vlan=atoi(p+5);
 #endif
       else if (strncmp(p, "proto=", 6)==0)
-        pa->proto=atoi(p+6);
+        read_proto(p+6, &pa->proto);
       else if (strncmp(p, "mac=", 4)==0)
       { short int m[3];
         sscanf(p+4, "%04hx.%04hx.%04hx", m, m+1, m+2);
