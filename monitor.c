@@ -4,6 +4,8 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <time.h>
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
@@ -267,12 +269,64 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     reload_acl();
 }
 
+#ifndef HAVE_DAEMON
+int daemon(int nochdir, int noclose)
+{
+  int i;
+  if (!nochdir) chdir("/");
+  if (!noclose)
+  {
+    i=open("/dev/null", O_RDONLY);
+    if (i!=-1)
+    { if (i>0) dup2(i, 0);
+      close(i);
+    }
+    i=open("/dev/null", O_WRONLY);
+    if (i!=-1)
+    { if (i>1) dup2(i, 1);
+      if (i>2) dup2(i, 2);
+      close(i);
+    }
+  }
+  if ((i=fork()) == -1) return -1;
+  if (i>0) exit(0);
+  setsid();
+}
+#endif
+
+int usage(void)
+{
+  printf("IP traffic monitoring      " __DATE__ "\n");
+  printf("    Usage:\n");
+  printf("monitor [-d] [config]\n");
+  printf("  -d  - daemonize\n");
+  return 0;
+}
+
 int main(int argc, char *argv[])
 {
   char ebuf[PCAP_ERRBUF_SIZE]="";
-  int i;
+  int i, daemonize;
   FILE *f;
   char *piface;
+
+  for (i=0; i<=argc; i++)
+    saved_argv[i]=argv[i];
+  confname=CONFNAME;
+  daemonize=0;
+  while ((i=getopt(argc, argv, "dh?")) != -1)
+  {
+    switch (i)
+    {
+      case 'd': daemonize=1; break;
+      case 'h':
+      case '?': usage(); return 1;
+      default:  fprintf(stderr, "Unknown option -%c\n", (char)i);
+		usage(); return 2;
+    }
+  }
+  if (argc>optind)
+    confname=argv[optind];
 
   fflush(stderr);
   i = dup(fileno(stderr));
@@ -289,14 +343,12 @@ int main(int argc, char *argv[])
     }
   } else
     origerr = stderr;
-  if (argc>1)
-    confname=argv[1];
-  else
-    confname=CONFNAME;
   if (config(confname))
   { fprintf(origerr, "Config error\n");
     return 1;
   }
+  if (daemonize)
+    daemon(0, 0);
   if (strcmp(iface, "all") == 0)
     piface = NULL;
   else
@@ -313,8 +365,6 @@ int main(int argc, char *argv[])
   if (pk==NULL)
     pk = pcap_open_live_new(piface, MTU, -1, 0, ebuf, 0, 0, NULL);
 #endif
-  for (i=0; i<=argc; i++)
-    saved_argv[i]=argv[i];
   if (pk)
   {
     last_write=time(NULL);

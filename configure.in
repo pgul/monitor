@@ -51,6 +51,8 @@ case x$ac_cv_func_inet_addr in
     ;;
 esac
 
+AC_CHECK_FUNCS(daemon)
+
 OLD_LIBS=$LIBS
 LIBS="$LIBS -lpcap"
 AC_MSG_CHECKING(for libpcap)
