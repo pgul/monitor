@@ -156,87 +156,87 @@ left:
     }
     if (find)
     {
-  leftpacket=0;
-  if (!pa->link && !pa->fallthru)
-    break; // ignore
-  src_ua=uaindex[find_mask(src_ip)];
-  dst_ua=uaindex[find_mask(dst_ip)];
-  if (fsnap && !snaped)
-  { 
-    snaped=1;
-    if (dst_mac)
-      fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
+      leftpacket=0;
+      if (!pa->link && !pa->fallthru)
+        break; // ignore
+      src_ua=uaindex[find_mask(src_ip)];
+      dst_ua=uaindex[find_mask(dst_ip)];
+      if (fsnap && !snaped)
+      { 
+        snaped=1;
+        if (dst_mac)
+          fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK
-        "vlan %d, "
+            "vlan %d, "
 #endif
-        "mac %02x%02x.%02x%02x.%02x%02x)\n",
-        ((in^pa->reverse) ? "<-" : "->"),
-        ((char *)&src_ip)[0], ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3],
-        ((char *)&dst_ip)[0], ((char *)&dst_ip)[1], ((char *)&dst_ip)[2], ((char *)&dst_ip)[3],
-        pa->link->name, uaname[src_ua], uaname[dst_ua],
-        ((in^pa->reverse) ? "in" : "out"), len,
+            "mac %02x%02x.%02x%02x.%02x%02x)\n",
+            ((in^pa->reverse) ? "<-" : "->"),
+            ((char *)&src_ip)[0], ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3],
+            ((char *)&dst_ip)[0], ((char *)&dst_ip)[1], ((char *)&dst_ip)[2], ((char *)&dst_ip)[3],
+            pa->link->name, uaname[src_ua], uaname[dst_ua],
+            ((in^pa->reverse) ? "in" : "out"), len,
 #ifndef NO_TRUNK
-        vlan,
+            vlan,
 #endif
-        remote_mac[0], remote_mac[1], remote_mac[2],
-        remote_mac[3], remote_mac[4], remote_mac[5]);
-    else
-      fprintf(fsnap, 
+            remote_mac[0], remote_mac[1], remote_mac[2],
+            remote_mac[3], remote_mac[4], remote_mac[5]);
+        else
+          fprintf(fsnap, 
 #ifdef HAVE_PKTTYPE
-                    "%s "
+                        "%s "
 #endif
-                    "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
+                        "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
 #ifdef HAVE_PKTTYPE
-        ((in^pa->reverse) ? "<-" : "->"),
+            ((in^pa->reverse) ? "<-" : "->"),
 #endif
-        ((char *)&src_ip)[0], ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3],
-        ((char *)&dst_ip)[0], ((char *)&dst_ip)[1], ((char *)&dst_ip)[2], ((char *)&dst_ip)[3],
-        pa->link->name, uaname[src_ua], uaname[dst_ua],
-        ((in^pa->reverse) ? "in" : "out"), len);
-    fflush(fsnap);
-    if ((snap_traf-=len) <= 0)
-    { fclose(fsnap);
-      fsnap = NULL;
-      snap_traf=0;
-    }
-  }
-  if (remote_mac && (mactable=pa->link->mactable) != NULL)
-  { for (key=*(unsigned short *)(remote_mac+4) % maxmacs;
-         mactable[key] && memcmp(remote_mac,mactable[key]->mac,ETHER_ADDR_LEN);
-         key = (key+1) % maxmacs);
-    if (mactable[key] == NULL)
-    {
-      mactable[key]=calloc(1, sizeof(struct mactype));
-      mactable[key]->ip=malloc(sizeof(remote));
-      mactable[key]->nip=1;
-      mactable[key]->ip[0]=remote;
-      memcpy(mactable[key]->mac, remote_mac, ETHER_ADDR_LEN);
-      mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]=len;
-      pa->link->nmacs++;
-    }
-    else
-    {
-      mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]+=len;
-      if (mactable[key]->ip[0]!=remote)
-      {
-        int i;
-        for (i=mactable[key]->nip-1; i>0; i--)
-          if (mactable[key]->ip[i]==remote)
-            break;
-        if (i==0 && mactable[key]->nip++<maxcoloip)
-        {
-          if ((mactable[key]->nip-2)%16==0)
-            mactable[key]->ip=realloc(mactable[key]->ip, (mactable[key]->nip+15)*sizeof(remote));
-          mactable[key]->ip[mactable[key]->nip-1]=remote;
+            ((char *)&src_ip)[0], ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3],
+            ((char *)&dst_ip)[0], ((char *)&dst_ip)[1], ((char *)&dst_ip)[2], ((char *)&dst_ip)[3],
+            pa->link->name, uaname[src_ua], uaname[dst_ua],
+            ((in^pa->reverse) ? "in" : "out"), len);
+        fflush(fsnap);
+        if ((snap_traf-=len) <= 0)
+        { fclose(fsnap);
+          fsnap = NULL;
+          snap_traf=0;
         }
       }
-    }
-  }
-  if ((pa->link->bytes[in^pa->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
-      || pa->link->nmacs>maxmacs/2)
-    write_stat();
-  if (!pa->fallthru)
-    break;
+      if (remote_mac && (mactable=pa->link->mactable) != NULL)
+      { for (key=*(unsigned short *)(remote_mac+4) % maxmacs;
+            mactable[key] && memcmp(remote_mac,mactable[key]->mac,ETHER_ADDR_LEN);
+             key = (key+1) % maxmacs);
+        if (mactable[key] == NULL)
+        {
+          mactable[key]=calloc(1, sizeof(struct mactype));
+          mactable[key]->ip=malloc(sizeof(remote));
+          mactable[key]->nip=1;
+          mactable[key]->ip[0]=remote;
+          memcpy(mactable[key]->mac, remote_mac, ETHER_ADDR_LEN);
+          mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]=len;
+          pa->link->nmacs++;
+        }
+        else
+        {
+          mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]+=len;
+          if (mactable[key]->ip[0]!=remote)
+          {
+            int i;
+            for (i=mactable[key]->nip-1; i>0; i--)
+              if (mactable[key]->ip[i]==remote)
+                break;
+            if (i==0 && mactable[key]->nip++<maxcoloip)
+            {
+              if ((mactable[key]->nip-2)%16==0)
+                mactable[key]->ip=realloc(mactable[key]->ip, (mactable[key]->nip+15)*sizeof(remote));
+              mactable[key]->ip[mactable[key]->nip-1]=remote;
+            }
+          }
+        }
+      }
+      if ((pa->link->bytes[in^pa->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
+          || pa->link->nmacs>maxmacs/2)
+        write_stat();
+      if (!pa->fallthru)
+        break;
     }
   }
   sigprocmask(SIG_SETMASK, &oset, NULL);
