@@ -1,0 +1,45 @@
+dnl $Id$
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(monitor.c)
+
+dnl Checks for programs.
+AC_PROG_CC
+
+CFLAGS=
+dnl Checks for header files.
+AC_CHECK_HEADERS(net/if_vlan_var.h net/ethernet.h netinet/if_ether.h pcap.h)
+case x$ac_cv_header_pcap_h in
+  xno)
+    AC_CHECK_HEADERS(pcap/pcap.h)
+    case x$ac_cv_header_pcap_pcap_h in
+      xno)
+        AC_MSG_CHECKING(for -I/usr/include/pcap needed for pcap.h)
+        OLD_CFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS -I/usr/include/pcap"
+        AC_TRY_COMPILE([#include <pcap.h>],[],
+                       AC_MSG_RESULT(yes); need_incl_pcap=yes,
+                       AC_MSG_RESULT(no); AC_ERROR(Cannot find pcap lib))
+        ;;
+     esac
+     ;;
+esac
+
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+
+dnl Checks for library functions.
+dnl AC_CHECK_FUNCS(snprintf ftruncate strnicmp strncasecmp pipe)
+
+dnl Check for trunk
+AC_ARG_WITH(vlans,
+            [  --with-vlans            802.1q vlans support (default no)],
+            do_trunk=yes, do_trunk=no)
+case x$do_trunk in
+  xyes)
+    ;;
+  *)
+    AC_DEFINE(NO_TRUNK)
+    ;;
+esac
+
+AC_OUTPUT(Makefile)
