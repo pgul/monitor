@@ -337,7 +337,7 @@ left:
         }
         pcache=cache+hash;
         pcache->src_ip=src_ip;
-        pcache->src_ip=dst_ip;
+        pcache->dst_ip=dst_ip;
         pcache->proto=proto;
         pcache->in=in;
 #ifndef NO_TRUNK
