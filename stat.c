@@ -41,7 +41,11 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #ifndef NO_TRUNK
               int vlan,
 #endif
-              int in, int proto)
+              int in, int proto
+#ifdef WITH_PORTS
+	      , u_short sport, u_short dport
+#endif
+	      )
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
@@ -49,6 +53,9 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
   struct attrtype *pa;
   sigset_t set, oset;
   struct mactype **mactable;
+#ifdef WITH_PORTS
+  u_short lport=0, rport=0;
+#endif
 
   src_ip = ntohl(src_ip);
   dst_ip = ntohl(dst_ip);
@@ -59,12 +66,20 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
       remote=src_ip;
       local=dst_ip;
       remote_mac=src_mac;
+#ifdef WITH_PORTS
+      lport=sport;
+      rport=dport;
+#endif
     } else if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
     { /* outgoing packet */
       in = 0;
       remote=dst_ip;
       local=src_ip;
       remote_mac=dst_mac;
+#ifdef WITH_PORTS
+      lport=dport;
+      rport=sport;
+#endif
     }
     else
     { /* left packet */
@@ -112,6 +127,10 @@ left:
 #endif
         (pa->ip==0xfffffffful || ((pa->reverse ? local : remote) & pa->mask)==pa->ip) &&
         (pa->proto==(unsigned short)-1 || pa->proto==proto) &&
+#ifdef WITH_PORTS
+        (pa->port1==(unsigned short)-1 || (pa->port1>=(pa->reverse ? lport : rport) && (pa->port2<=(pa->reverse ? lport : rport)))) &&
+        (pa->lport1==(unsigned short)-1 || (pa->lport1>=(pa->reverse ? rport : lport) && (pa->lport2<=(pa->reverse ? rport : lport)))) &&
+#endif
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
     { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&

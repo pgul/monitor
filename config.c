@@ -42,6 +42,49 @@ char perlfile[256], perlstart[256], perlwrite[256];
 char perlwritemac[256], perlstop[256];
 #endif
 
+#ifdef WITH_PORTS
+static void read_port(char *p, u_short *port, u_short proto)
+{
+  if (isdigit(*p))
+    *port=atoi(p);
+  else
+  { struct servent *se;
+    struct protoent *pe;
+    char *sproto=NULL;
+    if (proto!=(u_short)-1)
+      if ((pe=getprotobynumber(proto)) != NULL)
+        sproto=pe->p_name;
+    if ((se=getservbyname(p, sproto)) == NULL)
+      printf("Unknown port %s\n", p);
+    else
+      *port=ntohs(se->s_port);
+  }
+}
+
+static void read_ports(char *p, u_short *pl, u_short *pg, u_short proto)
+{
+  char c, *p1;
+
+  for (p1=p; *p1 && !isspace(*p1) && *p1!=':'; p1++);
+  c=*p1;
+  *p1='\0';
+  read_port(p, pl, proto);
+  *p1=c;
+  if (c!=':' || *pl==(u_short)-1)
+  { *pg=*pl;
+    return;
+  }
+  p=p1+1;
+  for (p1=p; *p1 && !isspace(*p1); p1++);
+  c=*p1;
+  *p1='\0';
+  read_port(p, pg, proto);
+  *p1=c;
+  if (*pg==(u_short)-1)
+    *pg=*pl;
+}
+#endif
+
 static void read_proto(char *p, u_short *proto)
 {
   if (isdigit(*p))
@@ -320,6 +363,15 @@ int config(char *name)
 #endif
       else if (strncmp(p, "proto=", 6)==0)
         read_proto(p+6, &pa->proto);
+#ifdef WITH_PORTS
+      else if (strncmp(p, "port=", 5)==0)
+        read_ports(p+5, &pa->port1, &pa->port2, pa->proto);
+      else if (strncmp(p, "localport=", 10)==0)
+        read_ports(p+10, &pa->lport1, &pa->lport2, pa->proto);
+#else
+      else if (strncmp(p, "port=", 5)==0 || strncmp(p, "localport=", 10)==0)
+        puts("Ports support is not compiled in, use 'configure --with-ports'");
+#endif
       else if (strncmp(p, "mac=", 4)==0)
       { short int m[3];
         sscanf(p+4, "%04hx.%04hx.%04hx", m, m+1, m+2);

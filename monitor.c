@@ -13,6 +13,10 @@
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#ifdef WITH_PORTS
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#endif
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -186,6 +190,9 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct sll_header *sll_hdr;
 #endif
   int in=-1;
+#ifdef WITH_PORTS
+  u_short src_port, dst_port;
+#endif
 
 #ifdef HAVE_PKT_TYPE
   if (hdr->pkt_type == 4) // PACKET_OUTGOING
@@ -256,13 +263,29 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     dst_mac = (u_char *)&eth_hdr->ether_dhost;
   } else
     src_mac = dst_mac = NULL;
+#ifdef WITH_PORTS
+  if (ip_hdr->ip_p == IPPROTO_TCP)
+  { struct tcphdr *tcphdr = (struct tcphdr *)(ip_hdr+1);
+    src_port = ntohs(tcphdr->th_sport);
+    dst_port = ntohs(tcphdr->th_dport);
+  } else if (ip_hdr->ip_p == IPPROTO_UDP)
+  { struct udphdr *udphdr = (struct udphdr *)(ip_hdr+1);
+    src_port = ntohs(udphdr->uh_sport);
+    dst_port = ntohs(udphdr->uh_dport);
+  } else
+    src_port = dst_port = 0;
+#endif
   add_stat(src_mac, dst_mac,
            *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
            hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
 #ifndef NO_TRUNK
            vlan,
 #endif
-           in, ip_hdr->ip_p);
+           in, ip_hdr->ip_p
+#ifdef WITH_PORTS
+           , src_port, dst_port
+#endif
+           );
   if (last_write+write_interval<=time(NULL))
     write_stat();
   if (last_reload+reload_interval<=time(NULL))

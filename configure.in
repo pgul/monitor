@@ -106,6 +106,26 @@ case x$do_trunk in
     ;;
 esac
 
+dnl Check for ports
+AC_ARG_WITH(ports,
+            [  --with-ports            Analize tcp/udp ports (default yes)])
+case x$withval in
+  xno)
+    ;;
+  *)
+    AC_DEFINE(WITH_PORTS)
+    AC_MSG_CHECKING(for th_sport in struct tcphdr)
+    AC_TRY_COMPILE([#include <netinet/tcp.h>],
+	[struct tcphdr th; th.th_sport;],
+	AC_MSG_RESULT(yes),
+	AC_DEFINE_UNQUOTED(th_sport, source)
+	AC_DEFINE_UNQUOTED(th_dport, dest)
+	AC_DEFINE_UNQUOTED(uh_sport, source)
+	AC_DEFINE_UNQUOTED(uh_dport, dest)
+	AC_MSG_RESULT(no))
+    ;;
+esac
+
 dnl Check for embedded perl
 AC_ARG_WITH(perl,
             [  --with-perl             embedded perl support (default no)],

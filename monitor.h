@@ -58,6 +58,9 @@ struct attrtype {
 	struct attrtype *next;
 	int reverse, fallthru;
 	unsigned short proto;
+#ifdef WITH_PORTS
+	unsigned short port1, port2, lport1, lport2;
+#endif
 };
 
 extern struct attrtype *attrhead;
@@ -81,7 +84,11 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #ifndef NO_TRUNK
               int vlan,
 #endif
-              int in, int proto);
+              int in, int proto
+#ifdef WITH_PORTS
+              , u_short sport, u_short dport
+#endif
+              );
 void write_stat(void);
 int  config(char *name);
 classtype getclass(unsigned long addr);
