@@ -17,10 +17,20 @@
 #ifdef HAVE_NET_IF_VLAN_VAR_H
 #include <net/if_vlan_var.h>
 #endif
-#ifdef HAVE_PCAP_PCAP_H
+#if defined(HAVE_PCAP_PCAP_H)
 #include <pcap/pcap.h>
-#else
+#elif defined(HAVE_PCAP_H)
 #include <pcap.h>
+#else
+typedef struct pcap pcap_t;
+struct pcap_pkthdr {
+	struct timeval ts;      /* time stamp */
+	unsigned caplen;     /* length of portion present */
+	unsigned len;        /* length this packet (off wire) */
+};                                                                 
+pcap_t	*pcap_open_live(char *, int, int, int, char *);
+void	pcap_close(pcap_t *);
+int	pcap_loop(pcap_t *, int, pcap_handler, u_char *);
 #endif
 #include "monitor.h"
 
