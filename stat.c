@@ -131,12 +131,12 @@ left:
       mactable[key]->nip=1;
       mactable[key]->ip[0]=remote;
       memcpy(mactable[key]->mac, remote_mac, ETHER_ADDR_LEN);
-      mactable[key]->bytes[in][in ? src_ua : dst_ua]=len;
+      mactable[key]->bytes[in][in ? dst_ua : src_ua]=len;
       pa->link->nmacs++;
     }
     else
     {
-      mactable[key]->bytes[in][in ? src_ua : dst_ua]+=len;
+      mactable[key]->bytes[in][in ? dst_ua : src_ua]+=len;
       if (mactable[key]->ip[0]!=remote)
       {
         int i;
