@@ -977,7 +977,7 @@ if { (eval echo configure:976: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }
   cat >> confdefs.h <<\EOF
 #define HAVE_PCAP_H 1
 EOF
- echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
+ echo "$ac_t""yes" 1>&6; ac_cv_header_ext_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
@@ -985,7 +985,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 rm -f conftest*
-        case x$ac_cv_header_pcap_h in
+        case x$ac_cv_header_ext_pcap_h in
           xno)
             echo $ac_n "checking for -I/usr/contrib/include needed for pcap.h""... $ac_c" 1>&6
 echo "configure:992: checking for -I/usr/contrib/include needed for pcap.h" >&5
@@ -1003,7 +1003,7 @@ if { (eval echo configure:1002: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; 
   cat >> confdefs.h <<\EOF
 #define HAVE_PCAP_H 1
 EOF
- echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
+ echo "$ac_t""yes" 1>&6; ac_cv_header_ext2_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
