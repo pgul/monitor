@@ -17,8 +17,17 @@
 #define NBITS           2
 #endif
 #define NCLASSES	(1<<NBITS)
+#if NBITS>8
+#define MAPSIZE         (1<<MAXPREFIX)*(NBITS/8)
+#else
 #define MAPSIZE         (1<<MAXPREFIX)/(8/NBITS)
+#endif
 #define MAPKEY          (*(long *)"gul@")
+#if NBITS>8
+typedef unsigned short classtype;
+#else
+typedef unsigned char classtype;
+#endif
 
 #ifdef ETHER_ADDR_LEN
 struct mactype {
@@ -72,6 +81,6 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
               int in, int proto);
 void write_stat(void);
 int  config(char *name);
-char getclass(unsigned long addr);
+classtype getclass(unsigned long addr);
 int  init_map(void);
 void freeshmem(void);
