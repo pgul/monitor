@@ -7,7 +7,8 @@ AC_PROG_CC
 
 CFLAGS=
 dnl Checks for header files.
-AC_CHECK_HEADERS(net/if_vlan_var.h net/ethernet.h netinet/if_ether.h pcap.h)
+AC_CHECK_HEADERS(sys/ioctl.h net/if_vlan_var.h net/ethernet.h)
+AC_CHECK_HEADERS(netinet/if_ether.h pcap.h)
 case x$ac_cv_header_pcap_h in
   xno)
     AC_CHECK_HEADERS(pcap/pcap.h)
@@ -64,7 +65,7 @@ dnl AC_CHECK_LIB(pcap, pcap_open_live_new,
 case x$live_new in
   xyes)
     OLD_CFLAGS=$CFLAGS
-    CFLAGS="-w -Wimplicit-function-declaration -Werror"
+    CFLAGS="$CFLAGS -Wimplicit-function-declaration -Werror"
     AC_MSG_CHECKING(for pcap_open_live_new() proto)
     AC_TRY_COMPILE([
          #if defined(HAVE_PCAP_H)
@@ -73,8 +74,8 @@ case x$live_new in
          #include <pcap/pcap.h>
          #endif
        ], [pcap_open_live_new();],
-       AC_DEFINE(NEED_PCAP_OPEN_LIVE_NEW_PROTO) AC_MSG_RESULT(no),
-       AC_MSG_RESULT(yes))
+       AC_MSG_RESULT(yes),
+       AC_DEFINE(NEED_PCAP_OPEN_LIVE_NEW_PROTO) AC_MSG_RESULT(no))
     CFLAGS=$OLD_CFLAGS
     OLD_CFLAGS=
     ;;
@@ -108,5 +109,10 @@ AC_ARG_WITH(logdir,
      [  --with-logdir=path      log files directory (default /var/log/monitor)],
      [logdir=$withval],[])
 AC_DEFINE_UNQUOTED(LOGDIR, "$logdir")
+
+dnl Set dirs
+AC_ARG_WITH(debug,
+     [  --with-debug            compile with debug info],
+     [CFLAGS="-g $CFLAGS"],[CFLAGS="-O3 $CFLAGS"])
 
 AC_OUTPUT(Makefile)
