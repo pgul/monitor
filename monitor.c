@@ -158,11 +158,13 @@ void hup(int signo)
     }
   if (signo==SIGINFO)
   { /* snap 10M of traffic */
+    int wassnap=1;
     if (fsnap) fclose(fsnap);
+    else wassnap=0;
     snap_traf=10*1024*1024; 
     fsnap=fopen(snapfile, "a");
     if (fsnap==NULL) snap_traf=0;
-    else
+    else if (!wassnap)
     { time_t curtime=time(NULL);
       fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
     }
