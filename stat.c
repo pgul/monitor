@@ -196,13 +196,24 @@ void write_stat(void)
             for (j=0; j<NCLASSES; j++)
               if (pl->mactable[k]->bytes[i][j])
               { 
-                fprintf(fout, "%02x%02x.%02x%02x.%02x%02x.%s.%s: %lu bytes\n",
+                fprintf(fout, "%02x%02x.%02x%02x.%02x%02x.%s.%s: %lu bytes",
                         pl->mactable[k]->mac[0], pl->mactable[k]->mac[1],
                         pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
                         pl->mactable[k]->mac[4], pl->mactable[k]->mac[5],
                         uaname[j], (i ? "in" : "out"),
                         pl->mactable[k]->bytes[i][j]);
                 pl->mactable[k]->bytes[i][j]=0;
+                if (pl->mactable[k]->nip)
+                {
+                  int nip=0;
+                  fprintf(fout, " (");
+                  for (nip=0; nip<pl->mactable[k]->nip; nip++)
+                  { unsigned long n_remote = htonl(pl->mactable[k]->ip[nip]);
+                    fprintf(fout, "%s%s",
+                            inet_ntoa(*(struct in_addr *)&n_remote),
+                            (nip+1==pl->mactable[k]->nip ? "" : ", "));
+                  }
+                }
               }
           free(pl->mactable[k]->ip);
           free(pl->mactable[k]);
