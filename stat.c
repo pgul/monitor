@@ -131,20 +131,20 @@ left:
 #endif
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
-    { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&
+    { if ((pa->ip==0xfffffffful || ((pa->reverse ? src_ip : dst_ip) & pa->mask)==pa->ip) &&
           (pa->proto==(unsigned short)-1 || pa->proto==proto)
 #ifdef WITH_PORTS
-          && (pa->port1==(unsigned short)-1 || ((pa->port1>=dport) && (pa->port2<=dport)))
+          && (pa->port1==(unsigned short)-1 || ((pa->port1>=(pa->reverse ? dport : sport)) && (pa->port2<=(pa->reverse ? dport : sport))))
           && (pa->lport1==(unsigned short)-1 || ((pa->lport1>=sport) && (pa->lport2<=sport)))
 #endif
           )
       { find = 1;
         if (in==-1) in = 0;
-      } else if ((pa->ip==0xfffffffful || (dst_ip & pa->mask)==pa->ip) &&
+      } else if ((pa->ip==0xfffffffful || ((pa->reverse ? dst_ip : src_ip) & pa->mask)==pa->ip) &&
                  (pa->proto==(unsigned short)-1 || pa->proto==proto)
 #ifdef WITH_PORTS
-                 && (pa->port1==(unsigned short)-1 || ((pa->port1>=sport) && (pa->port2<=sport)))
-                 && (pa->lport1==(unsigned short)-1 || ((pa->lport1>=dport) && (pa->lport2<=dport)))
+                 && (pa->port1==(unsigned short)-1 || ((pa->port1>=(pa->reverse ? sport : dport)) && (pa->port2<=(pa->reverse ? sport : dport))))
+                 && (pa->lport1==(unsigned short)-1 || ((pa->lport1>=(pa->reverse ? dport : sport)) && (pa->lport2<=(pa->reverse ? dport : sport))))
 #endif
                 )
       { find = 1;
