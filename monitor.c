@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <time.h>
 #ifdef HAVE_SYS_IOCTL_H
@@ -119,10 +120,6 @@ struct sll_header {
 };
 #endif
 
-#ifndef SIGINFO
-#define SIGINFO SIGIO
-#endif
-
 time_t last_write, last_reload;
 long snap_traf;
 FILE *fsnap, *origerr;
@@ -143,6 +140,7 @@ static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 
 void hup(int signo)
 {
+  /* fprintf(origerr, "Received signal %d\n", signo); */
   if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR2)
     write_stat();
   if (signo==SIGTERM)
@@ -163,7 +161,10 @@ void hup(int signo)
     else wassnap=0;
     snap_traf=10*1024*1024; 
     fsnap=fopen(snapfile, "a");
-    if (fsnap==NULL) snap_traf=0;
+    if (fsnap==NULL)
+    { snap_traf=0;
+      fprintf(origerr, "Can't open %s: %s!\n", snapfile, strerror(errno));
+    }
     else if (!wassnap)
     { time_t curtime=time(NULL);
       fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
@@ -177,6 +178,21 @@ void hup(int signo)
     exit(5);
   }
   signal(signo, hup);
+}
+
+static void switchsignals(int how)
+{
+  sigset_t sigset;
+
+  /* block signals */
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGHUP);
+  sigaddset(&sigset, SIGTERM);
+  sigaddset(&sigset, SIGINT);
+  sigaddset(&sigset, SIGUSR1);
+  sigaddset(&sigset, SIGUSR2);
+  sigaddset(&sigset, SIGINFO);
+  sigprocmask(how, &sigset, NULL);
 }
 
 void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
@@ -196,6 +212,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   u_short src_port, dst_port;
 #endif
 
+  switchsignals(SIG_BLOCK);
 #ifdef HAVE_PKT_TYPE
   if (hdr->pkt_type == 4) // PACKET_OUTGOING
     in = 0;
@@ -207,7 +224,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   if (linktype == DLT_EN10MB)
   {
     if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
-      return;
+      goto dopkt_end;
     eth_hdr = (struct ether_header *)data;
 #ifndef NO_TRUNK
     vlan=0;
@@ -216,7 +233,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
       vlan_hdr=(struct ether_vlan_header *)data;
       vlan=ntohs(vlan_hdr->evl_tag);
       if (ntohs(vlan_hdr->evl_proto)!=ETHERTYPE_IP)
-        return;
+        goto dopkt_end;
       ip_hdr = (struct ip *)(vlan_hdr+1);
     }
     else
@@ -224,11 +241,11 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     if (ntohs(eth_hdr->ether_type)==ETHERTYPE_IP)
       ip_hdr = (struct ip *)(eth_hdr+1);
     else
-      return;
+      goto dopkt_end;
   } else if (linktype == DLT_RAW)
   { 
     if (hdr->len < sizeof(*ip_hdr))
-      return;
+      goto dopkt_end;
     eth_hdr = NULL;
 #ifndef NO_TRUNK
     vlan = 0;
@@ -238,7 +255,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   } else if (linktype == DLT_LINUX_SLL)
   { 
     if (hdr->len < sizeof(*sll_hdr)+sizeof(*ip_hdr))
-      return;
+      goto dopkt_end;
     sll_hdr = (struct sll_header *)data;
     eth_hdr = NULL;
 #ifndef NO_TRUNK
@@ -247,14 +264,14 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     if (ntohs(sll_hdr->sll_protocol)==ETHERTYPE_IP)
       ip_hdr = (struct ip *)(sll_hdr+1);
     else
-      return;
+      goto dopkt_end;
 #endif
     if (sll_hdr->sll_pkttype == 0)	// LINUX_SLL_HOST
       in = 1;
     else if (ntohs(sll_hdr->sll_pkttype) == 4)	// LINUX_SLL_OUTGOING
       in = 0;
   } else
-    return;
+    goto dopkt_end;
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
   if (real_linktype != DLT_EN10MB)
     src_mac = dst_mac = NULL;
@@ -292,6 +309,8 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     write_stat();
   if (last_reload+reload_interval<=time(NULL))
     reload_acl();
+dopkt_end:
+  switchsignals(SIG_UNBLOCK);
 }
 
 #ifndef HAVE_DAEMON
@@ -394,6 +413,7 @@ int main(int argc, char *argv[])
   if (pk)
   {
     last_write=time(NULL);
+    switchsignals(SIG_BLOCK);
     signal(SIGHUP, hup);
     signal(SIGUSR1, hup);
     signal(SIGUSR2, hup);

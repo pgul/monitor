@@ -29,10 +29,6 @@
 #endif
 #include "monitor.h"
 
-#ifndef SIGINFO
-#define SIGINFO SIGIO
-#endif
-
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
 static u_char broadcast[ETHER_ADDR_LEN]={0xff,0xff,0xff,0xff,0xff,0xff};
 extern long snap_traf;
@@ -94,7 +90,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifndef NO_TRUNK
       "vlan %d, "
 #endif
-      "mac %02x%02x.%02x%02x.%02x%02x) hit: %d\n",
+      "mac %02x%02x.%02x%02x.%02x%02x) hit: %d/%d\n",
       ((in^pa->reverse) ? "<-" : "->"), str_src_ip, str_dst_ip, protos[proto],
       pa->link ? pa->link->name : "unknown", uaname[src_ua], uaname[dst_ua],
       ((in^pa->reverse) ? "in" : "out"), len,
@@ -102,19 +98,19 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
       vlan,
 #endif
       remote_mac[0], remote_mac[1], remote_mac[2],
-      remote_mac[3], remote_mac[4], remote_mac[5], hit);
+      remote_mac[3], remote_mac[4], remote_mac[5], hit, nhash);
   else
     fprintf(fsnap, 
 #ifdef HAVE_PKTTYPE
                   "%s "
 #endif
-                  "%s->%s %s (%s.%s2%s.%s) %u bytes hit: %d\n",
+                  "%s->%s %s (%s.%s2%s.%s) %u bytes hit: %d/%d\n",
 #ifdef HAVE_PKTTYPE
       ((in^pa->reverse) ? "<-" : "->"),
 #endif
       str_src_ip, str_dst_ip, protos[proto],
       pa->link->name, uaname[src_ua], uaname[dst_ua],
-      ((in^pa->reverse) ? "in" : "out"), len, hit);
+      ((in^pa->reverse) ? "in" : "out"), len, hit, nhash);
   fflush(fsnap);
   if ((snap_traf-=len) <= 0)
   { fclose(fsnap);
@@ -238,7 +234,7 @@ left:
   sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
   hash = (*(u_short *)(void *)&src_ip+*((u_short *)(void *)&src_ip+1)+
-         *(u_short *)(void *)&dst_ip+*((u_short *)(void *)&dst_ip+1)+
+         *(u_short *)(void *)&dst_ip*2+*((u_short *)(void *)&dst_ip+1)*2+
 #ifndef NO_TRUNK
          vlan+
 #endif
@@ -352,12 +348,14 @@ left:
           memcpy(pcache->dst_mac, dst_mac, sizeof(pcache->dst_mac));
         }
         pcache->attr=pa;
+        pcache->next=-1;
       }
       else
       { for (;cache[hash].attr; hash=(hash+1)%CACHESIZE);
         pcache->next=hash;
         pcache=cache+hash;
         pcache->attr=pa;
+        pcache->next=-1;
       }
       if (!pa->link) // ignore
       { if (pa->fallthru)

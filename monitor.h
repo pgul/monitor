@@ -30,6 +30,10 @@ typedef unsigned short classtype;
 typedef unsigned char classtype;
 #endif
 
+#ifndef SIGINFO
+#define SIGINFO SIGIO
+#endif
+
 #ifdef ETHER_ADDR_LEN
 struct mactype {
 	u_long *ip;
