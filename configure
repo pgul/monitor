@@ -928,7 +928,7 @@ int main() {
 EOF
 if { (eval echo configure:930: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
-  echo "$ac_t""yes" 1>&6; need_incl_pcap=yes
+  echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
@@ -936,8 +936,8 @@ else
   echo "$ac_t""no" 1>&6
 fi
 rm -f conftest*
-        case x$need_incl_pcap in
-          x)
+        case x$ac_cv_header_pcap_h in
+          xno)
             echo $ac_n "checking for -I/usr/contrib/include needed for pcap.h""... $ac_c" 1>&6
 echo "configure:943: checking for -I/usr/contrib/include needed for pcap.h" >&5
             CFLAGS="$OLD_CFLAGS -I/usr/contrib/include"
@@ -951,12 +951,12 @@ int main() {
 EOF
 if { (eval echo configure:953: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
-  echo "$ac_t""yes" 1>&6; need_incl_pcap=yes
+  echo "$ac_t""yes" 1>&6; ac_cv_header_pcap_h=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  echo "$ac_t""no" 1>&6; { echo "configure: error: Cannot find pcap lib" 1>&2; exit 1; }
+  echo "$ac_t""no" 1>&6
 fi
 rm -f conftest*
             ;;
