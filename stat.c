@@ -374,39 +374,39 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
 #define mysql_field_count mysql_num_fields
 #endif
 
-#define create_utable \
-       "CREATE TABLE IF NOT EXISTS %s (
-              user CHAR(20) NOT NULL,
-              user_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-              UNIQUE (user)
-	)"
-#define create_table \
-       "CREATE TABLE IF NOT EXISTS %s (
-              time TIMESTAMP NOT NULL,
-              user_id INT UNSIGNED NOT NULL,
-              src ENUM(%s) NOT NULL,
-              dst ENUM(%s) NOT NULL,
-              direction ENUM('in', 'out') NOT NULL,
-              bytes INT UNSIGNED NOT NULL,
-              INDEX (user_id),
-              INDEX (time)
-	)"
-#define create_mtable \
-        "CREATE TABLE IF NOT EXISTS %s (
-              time TIMESTAMP NOT NULL,
-	      mac CHAR(16) NOT NULL,
-	      class ENUM(%s) NOT NULL,
-              direction ENUM('in', 'out') NOT NULL,
-              bytes INT UNSIGNED NOT NULL,
-              INDEX (mac),
-	      INDEX (time)
-	)"
-#define create_itable \
-        "CREATE TABLE IF NOT EXISTS %s (
-              mac CHAR(16) NOT NULL,
-              ip  CHAR(16) NOT NULL,
-              UNIQUE (mac, ip)
-	)"
+#define create_utable							\
+       "CREATE TABLE IF NOT EXISTS %s ("				\
+             "user CHAR(20) NOT NULL,"					\
+             "user_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,"\
+             "UNIQUE (user)"						\
+        ")"
+#define create_table					\
+       "CREATE TABLE IF NOT EXISTS %s ("		\
+             "time TIMESTAMP NOT NULL,"			\
+             "user_id INT UNSIGNED NOT NULL,"		\
+             "src ENUM(%s) NOT NULL,"			\
+             "dst ENUM(%s) NOT NULL,"			\
+             "direction ENUM('in', 'out') NOT NULL,"	\
+             "bytes INT UNSIGNED NOT NULL,"		\
+             "INDEX (user_id),"				\
+             "INDEX (time)"				\
+        ")"
+#define create_mtable					\
+        "CREATE TABLE IF NOT EXISTS %s ("		\
+             "time TIMESTAMP NOT NULL,"			\
+             "mac CHAR(16) NOT NULL,"			\
+             "class ENUM(%s) NOT NULL,"			\
+             "direction ENUM('in', 'out') NOT NULL,"	\
+             "bytes INT UNSIGNED NOT NULL,"		\
+             "INDEX (mac),"				\
+             "INDEX (time)"				\
+        ")"
+#define create_itable					\
+        "CREATE TABLE IF NOT EXISTS %s ("		\
+             "mac CHAR(16) NOT NULL,"			\
+             "ip  CHAR(16) NOT NULL,"			\
+             "UNIQUE (mac, ip)"				\
+        ")"
 
 static void mysql_err(MYSQL *conn, char *message)
 {
@@ -752,7 +752,9 @@ void write_stat(void)
                   int nip=0;
                   fprintf(fout, " (");
                   for (nip=0; nip<pl->mactable[k]->nip; nip++)
-                  { unsigned long n_remote = htonl(pl->mactable[k]->ip[nip]);
+                  {
+                    struct in_addr n_remote;
+                    n_remote.s_addr = htonl(pl->mactable[k]->ip[nip]);
 #ifdef DO_MYSQL
                     if (conn && !itable_created)
                     {
@@ -768,7 +770,7 @@ void write_stat(void)
                     { sprintf(query,
                          "INSERT IGNORE %s VALUES('%s', '%s')",
                          mysql_itable, mac,
-                         inet_ntoa(*(struct in_addr *)&n_remote));
+                         inet_ntoa(n_remote));
                       if (mysql_query(conn, query) != 0)
                       { mysql_err(conn, "mysql_query() failed");
                         do_disconnect(conn);
@@ -777,7 +779,7 @@ void write_stat(void)
                     }
 #endif
                     fprintf(fout, "%s%s",
-                            inet_ntoa(*(struct in_addr *)&n_remote),
+                            inet_ntoa(n_remote),
                             (nip+1==pl->mactable[k]->nip ? ")\n" : ", "));
                   }
                 }
