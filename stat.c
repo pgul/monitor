@@ -147,7 +147,14 @@ left:
         remote_mac[0], remote_mac[1], remote_mac[2],
         remote_mac[3], remote_mac[4], remote_mac[5]);
     else
-      fprintf(fsnap, "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
+      fprintf(fsnap, 
+#ifdef HAVE_PKTTYPE
+                    "%s "
+#endif
+                    "%u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes\n",
+#ifdef HAVE_PKTTYPE
+        ((in^pa->reverse) ? "<-" : "->"),
+#endif
         ((char *)&src_ip)[3], ((char *)&src_ip)[2], ((char *)&src_ip)[1], ((char *)&src_ip)[0],
         ((char *)&dst_ip)[3], ((char *)&dst_ip)[2], ((char *)&dst_ip)[1], ((char *)&dst_ip)[0],
         pa->link->name, uaname[find_mask(src_ip)], uaname[find_mask(dst_ip)],
