@@ -21,6 +21,7 @@ struct colostat {
 };
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
 u_char zeos_mac[ETHER_ADDR_LEN]={ZEOS_MAC};
+u_char wnet_mac[ETHER_ADDR_LEN]={WNET_MAC};
 static struct colostat *mactable[256*16], *macarr[256*8];
 static int nmac;
 static char *linkname[]={
@@ -125,8 +126,8 @@ findmac:
 		i=NVLANS; /* zeos */
 	if (vlan==206 && proto==IPPROTO_ICMP)
 		i=NVLANS+3; /* merezha-icmp */
-	if (vlan==200 && ((remote & 0xfffff000) == 0xd914a000 || remote == 0x3e950272))
-	// if (vlan==200 && memcmp(remote_mac, wnet_mac, ETHER_ADDR_LEN) == 0)
+	// if (vlan==200 && ((remote & 0xfffff000) == 0xd914a000 || remote == 0x3e950272))
+	if (vlan==200 && memcmp(remote_mac, wnet_mac, ETHER_ADDR_LEN) == 0)
 		i=NVLANS+4; /* wnet */
 	counter=&(bytes_link[i][in][src_ua][dst_ua]);
 	if (uplinks[i]==2 && ((in ? dst_ua : src_ua) == 0))
