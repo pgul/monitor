@@ -168,7 +168,8 @@ int config(char *name)
   /* free links and attrs */
   if (linkhead)
   { for (pl=linkhead->next; pl; pl=pl->next)
-    { free(linkhead);
+    { if (linkhead->mactable) free(linkhead->mactable);
+      free(linkhead);
       linkhead=pl;
     }
     free(linkhead);
