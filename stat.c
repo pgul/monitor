@@ -62,7 +62,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifdef WITH_PORTS
      u_short sport, u_short dport,
 #endif
-     int len, int hit)
+     int len, int hit, int hash)
 {
   u_char *remote_mac=in ? src_mac : dst_mac;
   char str_src_ip[20], str_dst_ip[20];
@@ -92,7 +92,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifndef NO_TRUNK
       "vlan %d, "
 #endif
-      "mac %02x%02x.%02x%02x.%02x%02x) hit: %d/%d\n",
+      "mac %02x%02x.%02x%02x.%02x%02x) %s: %d/%d/0x%04x\n",
       ((in^pa->reverse) ? "<-" : "->"), str_src_ip, str_dst_ip, protos[proto],
       pa->link ? pa->link->name : "unknown", uaname[src_ua], uaname[dst_ua],
       ((in^pa->reverse) ? "in" : "out"), len,
@@ -100,19 +100,21 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
       vlan,
 #endif
       remote_mac[0], remote_mac[1], remote_mac[2],
-      remote_mac[3], remote_mac[4], remote_mac[5], hit, nhash);
+      remote_mac[3], remote_mac[4], remote_mac[5],
+      (hit>0) ? "hit" : "miss", (hit>0) ? hit : -hit, nhash, hash);
   else
     fprintf(fsnap, 
 #ifdef HAVE_PKTTYPE
                   "%s "
 #endif
-                  "%s->%s %s (%s.%s2%s.%s) %u bytes hit: %d/%d\n",
+                  "%s->%s %s (%s.%s2%s.%s) %u bytes %s: %d/%d/0x%04x\n",
 #ifdef HAVE_PKTTYPE
       ((in^pa->reverse) ? "<-" : "->"),
 #endif
       str_src_ip, str_dst_ip, protos[proto],
       pa->link->name, uaname[src_ua], uaname[dst_ua],
-      ((in^pa->reverse) ? "in" : "out"), len, hit, nhash);
+      ((in^pa->reverse) ? "in" : "out"), len,
+      (hit>0) ? "hit" : "miss", (hit>0) ? hit : -hit, nhash, hash);
   fflush(fsnap);
   if ((snap_traf-=len) <= 0)
   { fclose(fsnap);
@@ -224,7 +226,7 @@ left:
 #ifdef WITH_PORTS
           sport, dport,
 #endif
-          len, 0);
+          len, -hit, hash);
 #endif
       return;
     }
@@ -250,7 +252,7 @@ left:
     hit++;
     if (cache[hash].src_ip==src_ip && cache[hash].dst_ip==dst_ip &&
 #ifndef NO_TRUNK
-        cache[hash].proto==vlan &&
+        cache[hash].vlan==vlan &&
 #endif
 #ifdef WITH_PORTS
         cache[hash].sport==sport && cache[hash].dport==dport &&
@@ -267,7 +269,7 @@ left:
 #ifdef WITH_PORTS
             sport, dport,
 #endif
-            len, hit);
+            len, hit, ohash);
         for (pcache=cache+hash;; pcache=cache+pcache->next)
         { if (pcache->attr->link)
           { if (remote_mac && pcache->attr->link->mactable)
@@ -381,7 +383,7 @@ left:
 #ifdef WITH_PORTS
           sport, dport,
 #endif
-          len, 0);
+          len, -hit, ohash);
         snaped=1;
       }
       if (remote_mac && pa->link->mactable != NULL)
