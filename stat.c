@@ -211,7 +211,7 @@ void write_stat(void)
                   { unsigned long n_remote = htonl(pl->mactable[k]->ip[nip]);
                     fprintf(fout, "%s%s",
                             inet_ntoa(*(struct in_addr *)&n_remote),
-                            (nip+1==pl->mactable[k]->nip ? "" : ", "));
+                            (nip+1==pl->mactable[k]->nip ? ")\n" : ", "));
                   }
                 }
               }
