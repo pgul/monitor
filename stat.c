@@ -237,8 +237,8 @@ left:
   sigaddset(&set, SIGINFO);
   sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
-  hash = (*(u_short *)&src_ip+*((u_short *)&src_ip+1)+
-         *(u_short *)&dst_ip+*((u_short *)&dst_ip+1)+
+  hash = (*(u_short *)(void *)&src_ip+*((u_short *)(void *)&src_ip+1)+
+         *(u_short *)(void *)&dst_ip+*((u_short *)(void *)&dst_ip+1)+
 #ifndef NO_TRUNK
 	 vlan+
 #endif
