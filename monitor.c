@@ -4,7 +4,6 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <time.h>
-#include <net/ethernet.h>
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -13,7 +12,16 @@
 #ifdef HAVE_NET_IF_VLAN_VAR_H
 #include <net/if_vlan_var.h>
 #endif
+#ifdef HAVE_NET_ETHERNET_H
+#include <net/ethernet.h>
+#else
+#include <netinet/if_ether.h>
+#endif
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#else
 #include <pcap.h>
+#endif
 #include "monitor.h"
 
 #ifndef NO_TRUNK
