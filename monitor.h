@@ -31,7 +31,6 @@ struct linktype {
 	struct linktype *next;
 	struct mactype **mactable;
 	int nmacs;
-	int reverse, fallthru;
 };
 
 struct attrtype {
@@ -42,6 +41,7 @@ struct attrtype {
 #endif
 	struct linktype *link;
 	struct attrtype *next;
+	int reverse, fallthru;
 	unsigned short proto;
 };
 

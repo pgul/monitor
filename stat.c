@@ -95,12 +95,12 @@ left:
 #ifndef NO_TRUNK
         (pa->vlan==(unsigned short)-1 || pa->vlan==vlan) &&
 #endif
-        (pa->ip==0xfffffffful || ((pa->link->reverse ? local : remote) & pa->mask)==pa->ip) &&
+        (pa->ip==0xfffffffful || ((pa->reverse ? local : remote) & pa->mask)==pa->ip) &&
 	(pa->proto==(unsigned short)-1 || pa->proto==proto) &&
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0))
     {
   leftpacket=0;
-  if (fsnap && !pa->link->reverse)
+  if (fsnap && !pa->reverse)
   { fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK
         "vlan %d, "
@@ -136,12 +136,12 @@ left:
       mactable[key]->nip=1;
       mactable[key]->ip[0]=remote;
       memcpy(mactable[key]->mac, remote_mac, ETHER_ADDR_LEN);
-      mactable[key]->bytes[pa->link->reverse^in][(in^pa->link->reverse) ? dst_ua : src_ua]=len;
+      mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]=len;
       pa->link->nmacs++;
     }
     else
     {
-      mactable[key]->bytes[pa->link->reverse^in][(in^pa->link->reverse) ? dst_ua : src_ua]+=len;
+      mactable[key]->bytes[pa->reverse^in][(in^pa->reverse) ? dst_ua : src_ua]+=len;
       if (mactable[key]->ip[0]!=remote)
       {
         int i;
@@ -157,11 +157,11 @@ left:
       }
     }
   }
-  if ((pa->link->bytes[in^pa->link->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
+  if ((pa->link->bytes[in^pa->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
       || pa->link->nmacs>maxmacs/2)
     write_stat();
     }
-    if (!pa->link->fallthru)
+    if (!pa->fallthru)
       break;
   }
   sigprocmask(SIG_SETMASK, &oset, NULL);

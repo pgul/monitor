@@ -154,6 +154,7 @@ int config(char *name)
     memset(pa, 0xff, sizeof(*pa));
     pa->link = pl;
     pa->next = NULL;
+    pa->reverse=pa->fallthru=0;
     if (attrhead==NULL)
       attrhead = pa;
     else
@@ -168,10 +169,10 @@ int config(char *name)
           pa->link->mactable = calloc(MAXMACS, sizeof(struct mactype *));
       }
       else if (strncmp(p, "reverse", 7)==0)
-      { pa->link->reverse=1;
+      { pa->reverse=1;
       }
       else if (strncmp(p, "fallthru", 8)==0)
-      { pa->link->fallthru=1;
+      { pa->fallthru=1;
       }
 #ifndef NO_TRUNK
       else if (strncmp(p, "vlan=", 5)==0)
