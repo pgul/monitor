@@ -129,10 +129,10 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   struct ether_vlan_header *vlan_hdr;
   int vlan;
 #endif
-  if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
-    return;
   if (linktype == DLT_EN10MB)
   {
+    if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
+      return;
     eth_hdr = (struct ether_header *)data;
 #ifndef NO_TRUNK
     vlan=0;
@@ -151,7 +151,10 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     else
       return;
   } else if (linktype == DLT_RAW)
-  { eth_hdr = NULL;
+  { 
+    if (hdr->len < sizeof(*ip_hdr))
+      return;
+    eth_hdr = NULL;
 #ifndef NO_TRUNK
     vlan = 0;
 #endif
