@@ -380,8 +380,8 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
        "CREATE TABLE IF NOT EXISTS %s (
               time TIMESTAMP NOT NULL,
               user_id INT UNSIGNED NOT NULL,
-              src ENUM('ua', 'world') NOT NULL,
-              dst ENUM('ua', 'world') NOT NULL,
+              src ENUM(%s) NOT NULL,
+              dst ENUM(%s) NOT NULL,
               direction ENUM('in', 'out') NOT NULL,
               bytes INT UNSIGNED NOT NULL,
               INDEX (user_id),
@@ -391,7 +391,7 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
         "CREATE TABLE IF NOT EXISTS %s (
               time TIMESTAMP NOT NULL,
 	      mac CHAR(16) NOT NULL,
-	      class ENUM('ua', 'world') NOT NULL,
+	      class ENUM(%s) NOT NULL,
               direction ENUM('in', 'out') NOT NULL,
               bytes INT UNSIGNED NOT NULL,
               INDEX (mac),
@@ -519,9 +519,14 @@ void write_stat(void)
 #ifdef DO_MYSQL
   MYSQL *conn = NULL;
   char table[256], mtable[256], query[1024], stamp[15];
+#if NCLASSES>=256
+  static
+#endif
+  char enums[(sizeof(uaname[0])+4)*NCLASSES];
   int  mysql_connected=0;
   int  table_created=0, utable_created=0, mtable_created=0, itable_created=0;
   struct tm *tm_now;
+  char *p;
 #endif
 
   last_write=time(NULL);
@@ -535,6 +540,18 @@ void write_stat(void)
   strftime( table, sizeof( table), mysql_table,   tm_now);
   strftime(mtable, sizeof(mtable), mysql_mtable,  tm_now);
   strftime(stamp,  sizeof(stamp), "%Y%m%d%H%M%S", tm_now);
+  p=enums;
+  for (i=0; i<NCLASSES && i<256; i++)
+  { if (p>enums)
+    { strcpy(p, ", ");
+      p+=2;
+    }
+    *p++='\'';
+    strcpy(p, uaname[i]);
+    p+=strlen(p);
+    *p++='\'';
+  }
+  *p='\0';
 #endif
   fprintf(fout, "----- %s", ctime(&last_write));
   for (pl=linkhead; pl; pl=pl->next)
@@ -572,7 +589,7 @@ void write_stat(void)
             }
             if (conn && !table_created)
             {
-              snprintf(query, sizeof(query)-1, create_table, table);
+              snprintf(query, sizeof(query)-1, create_table, table, enums, enums);
               if (mysql_query(conn, query) != 0)
               { mysql_err(conn, "mysql_query() failed");
                 do_disconnect(conn);
@@ -701,7 +718,7 @@ void write_stat(void)
                 }
                 if (conn && !mtable_created)
                 {
-                  snprintf(query, sizeof(query)-1, create_mtable, mtable);
+                  snprintf(query, sizeof(query)-1, create_mtable, mtable,enums);
                   if (mysql_query(conn, query) != 0)
                   { mysql_err(conn, "mysql_query() failed");
                     do_disconnect(conn);
