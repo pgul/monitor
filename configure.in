@@ -55,6 +55,41 @@ AC_MSG_CHECKING(for libpcap)
 AC_TRY_LINK([],[pcap_open_live();],AC_MSG_RESULT(yes),
      AC_MSG_RESULT(no); AC_ERROR(no libpcap found))
 
+AC_MSG_CHECKING(for pcap_open_live_new())
+AC_TRY_LINK([],[pcap_open_live_new();],
+dnl AC_CHECK_LIB(pcap, pcap_open_live_new,
+     AC_DEFINE(HAVE_PCAP_OPEN_LIVE_NEW) AC_MSG_RESULT(yes); live_new=yes,
+     AC_MSG_RESULT(no))
+
+case x$live_new in
+  xyes)
+    OLD_CFLAGS=$CFLAGS
+    CFLAGS="-w -Wimplicit-function-declaration -Werror"
+    AC_MSG_CHECKING(for pcap_open_live_new() proto)
+    AC_TRY_COMPILE([
+         #if defined(HAVE_PCAP_H)
+         #include <pcap.h>
+         #elif defined(HAVE_PCAP_PCAP_H)
+         #include <pcap/pcap.h>
+         #endif
+       ], [pcap_open_live_new();],
+       AC_DEFINE(NEED_PCAP_OPEN_LIVE_NEW_PROTO) AC_MSG_RESULT(no),
+       AC_MSG_RESULT(yes))
+    CFLAGS=$OLD_CFLAGS
+    OLD_CFLAGS=
+    ;;
+esac
+
+AC_MSG_CHECKING(for pkt_type in struct pcap_pkthdr)
+AC_TRY_COMPILE([
+    #if defined(HAVE_PCAP_H)
+    #include <pcap.h>
+    #elif defined(HAVE_PCAP_PCAP_H)
+    #include <pcap/pcap.h>
+    #endif
+  ], [struct pcap_pkthdr pk; pk.pkt_type;],
+  AC_DEFINE(HAVE_PKT_TYPE) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
+
 dnl Check for trunk
 AC_ARG_WITH(vlans,
             [  --with-vlans            802.1q vlans support (default no)],

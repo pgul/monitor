@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/types.h>
 #include <time.h>
 #include <netinet/in_systm.h>
@@ -72,6 +73,9 @@ int	pcap_setfilter(pcap_t *, struct bpf_program *);
 #ifndef PCAP_ERRBUF_SIZE
 #define PCAP_ERRBUF_SIZE 256
 #endif
+#ifdef NEED_PCAP_OPEN_LIVE_NEW_PROTO
+pcap_t	*pcap_open_live_new(char *, int, int, int, char *, int, int, char *);
+#endif
 #include "monitor.h"
 
 #ifndef NO_TRUNK
@@ -100,6 +104,9 @@ pcap_t *pk;
 char *saved_argv[20];
 char *confname;
 int  linktype;
+#ifdef HAVE_PCAP_OPEN_LIVE_NEW
+int  real_linktype;
+#endif
 static char *dlt[] = {
  "null", "ethernet", "eth3m", "ax25", "pronet", "chaos",
  "ieee802", "arcnet", "slip", "ppp", "fddi", "llc/snap atm", "raw ip",
@@ -145,9 +152,18 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 {
   struct ether_header *eth_hdr;
   struct ip *ip_hdr;
+  u_char *src_mac, *dst_mac;
 #ifndef NO_TRUNK
   struct ether_vlan_header *vlan_hdr;
   int vlan;
+#endif
+#ifdef HAVE_PKT_TYPE
+  int in;
+
+  if (hdr->pkt_type == 4) // PACKET_OUTGOING
+    in = 0;
+  else // PACKET_HOST, PACKET_BROADCAST, PACKET_MULTICAST, PACKET_OTHERHOST
+    in = 1;
 #endif
   // fprintf(origerr, "#"); fflush(origerr);
   if (linktype == DLT_EN10MB)
@@ -182,12 +198,24 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     ip_hdr = (struct ip *)data;
   } else
     return;
-  add_stat(eth_hdr ? (u_char *)&eth_hdr->ether_shost : NULL,
-           eth_hdr ? (u_char *)&eth_hdr->ether_dhost : NULL,
+#ifdef HAVE_PCAP_OPEN_LIVE_NEW
+  if (real_linktype != DLT_EN10MB)
+    src_mac = dst_mac = NULL;
+  else
+#endif
+  if (eth_hdr)
+  { src_mac = (u_char *)&eth_hdr->ether_shost;
+    dst_mac = (u_char *)&eth_hdr->ether_dhost;
+  } else
+    src_mac = dst_mac = NULL;
+  add_stat(src_mac, dst_mac,
            *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
            hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
 #ifndef NO_TRUNK
            vlan,
+#endif
+#ifdef HAVE_PKT_TYPE
+           in,
 #endif
            ip_hdr->ip_p);
   if (last_write+write_interval<=time(NULL))
@@ -226,6 +254,13 @@ int main(int argc, char *argv[])
     return 1;
   }
   pk = pcap_open_live(iface, MTU, 1, 0, ebuf);
+#ifdef HAVE_PCAP_OPEN_LIVE_NEW
+  if (pk)
+  { real_linktype = pcap_datalink(pk);
+    pcap_close(pk);
+  }
+  pk = pcap_open_live_new(iface, MTU, -1, 0, ebuf, 0, 0, NULL);
+#endif
   for (i=0; i<=argc; i++)
     saved_argv[i]=argv[i];
   if (pk)

@@ -33,11 +33,17 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #ifndef NO_TRUNK
               int vlan,
 #endif
+#ifdef HAVE_PKT_TYPE
+              int in,
+#endif
               int proto)
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
-  int in=0, src_ua, dst_ua, key, leftpacket, find;
+  int src_ua, dst_ua, key, leftpacket, find;
+#ifndef HAVE_PKT_TYPE
+  int in=0;
+#endif
   struct attrtype *pa;
   sigset_t set, oset;
   struct mactype **mactable;
@@ -108,11 +114,15 @@ left:
     { if ((pa->ip==0xfffffffful || (src_ip & pa->mask)==pa->ip) &&
           (pa->proto==(unsigned short)-1 || pa->proto==proto))
       { find = 1;
+#ifndef HAVE_PKT_TYPE
         in = 0;
+#endif
       } else if ((pa->ip==0xfffffffful || (dst_ip & pa->mask)==pa->ip) &&
                  (pa->proto==(unsigned short)-1 || pa->proto==proto))
       { find = 1;
+#ifndef HAVE_PKT_TYPE
         in = 1;
+#endif
       }
     }
     if (find)
