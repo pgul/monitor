@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
