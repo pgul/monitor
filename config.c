@@ -42,6 +42,32 @@ char perlfile[256], perlstart[256], perlwrite[256];
 char perlwritemac[256], perlstop[256];
 #endif
 
+static void read_ip(char *p, u_long *ip, u_long *mask)
+{ char c, *p1;
+
+  for (p1=p; *p1 && (isdigit(*p1) || *p1=='.'); p1++);
+  c=*p1;
+  *p1='\0';
+  *ip = inet_addr(p);
+  if (c=='/')
+  { *mask<<=(32-atoi(p1+1));
+    *mask=htonl(*mask);
+  }
+  *p1=c; p=p1;
+  if ((*ip & *mask) != *ip)
+  { unsigned long masked = (*ip & *mask);
+    printf("Warning: %u.%u.%u.%u inconsistent with /%d (mask %u.%u.%u.%u)!\n",
+           ((char *)ip)[0], ((char *)ip)[1],
+           ((char *)ip)[2], ((char *)ip)[3],
+           atoi(p+1),
+           ((char *)mask)[0], ((char *)mask)[1],
+           ((char *)mask)[2], ((char *)mask)[3]);
+    printf("ip & mask is %u.%u.%u.%u\n",
+           ((char *)&masked)[0], ((char *)&masked)[1],
+           ((char *)&masked)[2], ((char *)&masked)[3]);
+  }
+}
+
 #ifdef WITH_PORTS
 static void read_port(char *p, u_short *port, u_short proto)
 {
@@ -381,30 +407,9 @@ int config(char *name)
         memcpy(pa->mac, m, sizeof(pa->mac));
       }
       else if (strncmp(p, "ip=", 3)==0)
-      { char c, *p1;
-        p+=3;
-        for (p1=p; *p1 && (isdigit(*p1) || *p1=='.'); p1++);
-        c=*p1;
-        *p1='\0';
-        pa->ip = inet_addr(p);
-        if (c=='/')
-        { pa->mask<<=(32-atoi(p1+1));
-          pa->mask=htonl(pa->mask);
-        }
-        *p1=c; p=p1;
-        if ((pa->ip & pa->mask) != pa->ip)
-        { unsigned long masked = (pa->ip & pa->mask);
-          printf("Warning: %u.%u.%u.%u inconsistent with /%d (mask %u.%u.%u.%u)!\n",
-                 ((char *)&(pa->ip))[0], ((char *)&(pa->ip))[1],
-                 ((char *)&(pa->ip))[2], ((char *)&(pa->ip))[3],
-                 atoi(p+1),
-                 ((char *)&(pa->mask))[0], ((char *)&(pa->mask))[1],
-                 ((char *)&(pa->mask))[2], ((char *)&(pa->mask))[3]);
-          printf("ip & mask is %u.%u.%u.%u\n",
-                 ((char *)&masked)[0], ((char *)&masked)[1],
-                 ((char *)&masked)[2], ((char *)&masked)[3]);
-        }
-      }
+        read_ip(p+3, &pa->ip, &pa->mask);
+      else if (strncmp(p, "remote=", 7)==0)
+        read_ip(p+7, &pa->remote, &pa->rmask);
       while (*p && !isspace(*p)) p++;
     }
   }

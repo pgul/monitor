@@ -49,7 +49,7 @@ struct linktype {
 };
 
 struct attrtype {
-	u_long ip, mask;
+	u_long ip, mask, remote, rmask;
 	u_char mac[ETHER_ADDR_LEN];
 #ifndef NO_TRUNK
 	unsigned short vlan;
