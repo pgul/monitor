@@ -333,14 +333,14 @@ int main(int argc, char *argv[])
         fclose(f);
       }
       linktype = pcap_datalink(pk);
-      if (linktype != DLT_EN10MB && linktype != DLT_RAW)
+      if (linktype != DLT_EN10MB && linktype != DLT_RAW
+#ifdef DLT_LINUX_SLL
+          && linktype != DLT_LINUX_SLL
+#endif
+         )
       { char *sdlt, unspec[32];
         if (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0]))
           sdlt = dlt[linktype];
-#ifdef DLT_LINUX_SLL
-        else if (linktype == DLT_LINUX_SLL)
-          sdlt = "linux sll";
-#endif
         else
         { sprintf(unspec, "unspec (%d)", linktype);
           sdlt = unspec;
