@@ -243,12 +243,12 @@ void write_stat(void)
         if (macarr[i]->bytes[j][k])
         {
           fprintf(fout, "%02x%02x.%02x%02x.%02x%02x.%s.%s: %lu bytes (",
-                  macaddr[i]->mac[0],
-                  macaddr[i]->mac[1],
-                  macaddr[i]->mac[2],
-                  macaddr[i]->mac[3],
-                  macaddr[i]->mac[4],
-                  macaddr[i]->mac[5],
+                  macarr[i]->mac[0],
+                  macarr[i]->mac[1],
+                  macarr[i]->mac[2],
+                  macarr[i]->mac[3],
+                  macarr[i]->mac[4],
+                  macarr[i]->mac[5],
                   uaname[k], j ? "in" : "out",
                   macarr[i]->bytes[j][k]);
           for (link=0; link<macarr[i]->nip && link<MAXCOLOIP; link++)

@@ -22,9 +22,9 @@ char *saved_argv[20];
 
 void hup(int signo)
 {
-  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR3)
+  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT)
     write_stat();
-  if (signo==SIGINT || signo==SIGTERM)
+  if (signo==SIGTERM)
     exit(0);
   if (signo==SIGUSR1)
     reload_acl();
@@ -39,7 +39,7 @@ void hup(int signo)
       fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
     }
   }
-  if (signo==SIGUSR3)
+  if (signo==SIGINT)
   { /* restart myself */
     pcap_close(pk);
     execvp(saved_argv[0], saved_argv);
