@@ -26,7 +26,9 @@ void hup(int signo)
   if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT)
     write_stat();
   if (signo==SIGTERM)
+  { unlink(PIDFILE);
     exit(0);
+  }
   if (signo==SIGUSR1)
     reload_acl();
   if (signo==SIGUSR2)
@@ -43,6 +45,7 @@ void hup(int signo)
   if (signo==SIGINT)
   { /* restart myself */
     pcap_close(pk);
+    unlink(PIDFILE);
     execvp(saved_argv[0], saved_argv);
     exit(5);
   }
@@ -147,7 +150,14 @@ int main(int argc, char *argv[])
     if (reload_acl())
       printf("reload acl error!\n");
     else
+    { FILE *f=fopen(PIDFILE, "w");
+      if (f)
+      { fprintf(f, "%u\n", getpid());
+        fclose(f);
+      }
       pcap_loop(pk, -1, dopkt, NULL);
+      unlink(PIDFILE);
+    }
     pcap_close(pk);
   }
   else

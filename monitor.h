@@ -7,6 +7,7 @@
 #define WRITE_INTERVAL	(60*60)
 #define RELOAD_INTERVAL	(60*10)
 #define MAXCOLOIP	10
+#define PIDFILE		"/var/run/monitor.pid"
 
 #define ZEOS_MAC	0x00,0x02,0xb9,0xbb,0x77,0xf0
 #define WNET_MAC	0x00,0x00,0xb4,0x31,0x55,0x84
