@@ -744,10 +744,14 @@ void write_stat(void)
                     }
                     if (conn)
                     { sprintf(query,
-                         "INSERT %s VALUES('%s', '%s')",
+                         "INSERT IGNORE %s VALUES('%s', '%s')",
                          mysql_itable, mac,
                          inet_ntoa(*(struct in_addr *)&n_remote));
-                      mysql_query(conn, query); /* ignore error if not unique */
+                      if (mysql_query(conn, query) != 0)
+                      { mysql_err(conn, "mysql_query() failed");
+                        do_disconnect(conn);
+                        conn=NULL;
+                      }
                     }
 #endif
                     fprintf(fout, "%s%s",
