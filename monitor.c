@@ -291,6 +291,7 @@ int daemon(int nochdir, int noclose)
   if ((i=fork()) == -1) return -1;
   if (i>0) exit(0);
   setsid();
+  return 0;
 }
 #endif
 
