@@ -121,9 +121,9 @@ left:
   src_ua=find_mask(src_ip);
   dst_ua=find_mask(dst_ip);
   if ((mactable=pa->link->mactable) != NULL)
-  { for (key=*(unsigned short *)(remote_mac+4) & (maxmacs-1);
+  { for (key=*(unsigned short *)(remote_mac+4) % maxmacs;
          mactable[key] && memcmp(remote_mac,mactable[key]->mac,ETHER_ADDR_LEN);
-         key = (key+1) & (maxmacs-1));
+         key = (key+1) % maxmacs);
     if (mactable[key] == NULL)
     {
       mactable[key]=calloc(1, sizeof(struct mactype));
@@ -175,7 +175,7 @@ void write_stat(void)
           if (pl->bytes[i][j][k])
           { 
               fprintf(fout, "%s.%s2%s.%s: %lu bytes\n",
-                      pl->name, uaname[j], uaname[k], i ? "in" : "out",
+                      pl->name, uaname[j], uaname[k], (i ? "in" : "out"),
                       pl->bytes[i][j][k]);
               pl->bytes[i][j][k]=0;
           }
@@ -190,10 +190,11 @@ void write_stat(void)
                         pl->mactable[k]->mac[0], pl->mactable[k]->mac[1],
                         pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
                         pl->mactable[k]->mac[4], pl->mactable[k]->mac[5],
-                        uaname[j], i ? "in" : "out",
+                        uaname[j], (i ? "in" : "out"),
                         pl->mactable[k]->bytes[i][j]);
                 pl->mactable[k]->bytes[i][j]=0;
               }
+          free(pl->mactable[k]->ip);
           free(pl->mactable[k]);
           pl->mactable[k] = NULL;
         }
