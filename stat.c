@@ -175,9 +175,9 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 #endif
               int in, int proto
 #ifdef WITH_PORTS
-	      , u_short sport, u_short dport
+              , u_short sport, u_short dport
 #endif
-	      )
+              )
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
@@ -240,12 +240,12 @@ left:
   hash = (*(u_short *)(void *)&src_ip+*((u_short *)(void *)&src_ip+1)+
          *(u_short *)(void *)&dst_ip+*((u_short *)(void *)&dst_ip+1)+
 #ifndef NO_TRUNK
-	 vlan+
+         vlan+
 #endif
 #ifdef WITH_PORTS
-	 sport+dport+
+         sport+dport+
 #endif
-	 proto) % CACHESIZE;
+         proto) % CACHESIZE;
   ohash = hash;
   for (; cache[hash].attr; hash=(hash+1)%CACHESIZE) {
     if (cache[hash].src_ip==src_ip && cache[hash].dst_ip==dst_ip &&
@@ -883,7 +883,7 @@ void write_stat(void)
                         pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
                         pl->mactable[k]->mac[4], pl->mactable[k]->mac[5]);
 #ifdef DO_PERL
-		plwritemac(mac, uaname[j], (i ? "in" : "out"),
+                plwritemac(mac, uaname[j], (i ? "in" : "out"),
                            pl->mactable[k]->bytes[i][j]);
 #endif
 #ifdef DO_MYSQL
@@ -913,7 +913,7 @@ void write_stat(void)
                 { sprintf(query,
                      "INSERT %s VALUES('%s', '%s', '%s', '%s', '%lu')",
                      mtable, stamp, mac, uaname[j],
-                     (i ? "in" : "out"), pl->bytes[i][j][k]);
+                     (i ? "in" : "out"), pl->mactable[k]->bytes[i][j]);
                   if (mysql_query(conn, query) != 0)
                   { mysql_err(conn, "mysql_query() failed");
                     do_disconnect(conn);
