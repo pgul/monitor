@@ -182,14 +182,12 @@ int config(char *name)
         memcpy(pa->mac, m, sizeof(pa->mac));
       }
       else if (strncmp(p, "ip=", 3)==0)
-      { struct in_addr a;
-        char c, *p1;
+      { char c, *p1;
         p+=3;
         for (p1=p; *p1 && (isdigit(*p1) || *p1=='.'); p1++);
         c=*p1;
         *p1='\0';
-        inet_aton(p, &a);
-        pa->ip = ntohl(*(long *)&a);
+        pa->ip = ntohl(inet_addr(p));
         if (c=='/')
           pa->mask<<=(32-atoi(p1+1));
         *p1=c; p=p1;
