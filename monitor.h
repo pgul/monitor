@@ -10,6 +10,7 @@
 #define RELOAD_INTERVAL	(60*10)
 #define MAXMACS		(16*256) /* size of hash-table */
 #define MAXCOLOIP	16
+#define CACHESIZE	65536
 #ifndef MAXPREFIX
 #define MAXPREFIX       24
 #endif
