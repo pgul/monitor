@@ -247,8 +247,15 @@ int main(int argc, char *argv[])
       }
       linktype = pcap_datalink(pk);
       if (linktype != DLT_EN10MB && linktype != DLT_RAW)
-        fprintf(origerr, "Unsupported link type %s!\n",
-          (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0])) ? dlt[linktype] : "unspec");
+      { char *sdlt, unspec[32];
+        if (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0]))
+          sdlt = dlt[linktype];
+        else
+        { sprintf(unspec, "unspec (%d)", linktype);
+          sdlt = unspec;
+        }
+        fprintf(origerr, "Unsupported link type %s!\n", sdlt);
+      }
       else
       {
         struct bpf_program fcode;
