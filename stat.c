@@ -293,8 +293,8 @@ left:
         (pa->remote==0xfffffffful || ((pa->reverse ? remote : local) & pa->rmask)==pa->remote) &&
         (pa->proto==(unsigned short)-1 || pa->proto==proto) &&
 #ifdef WITH_PORTS
-        (pa->port1==(unsigned short)-1 || (pa->port1<=(pa->reverse ? lport : rport) && (pa->port2>=(pa->reverse ? lport : rport)))) &&
-        (pa->lport1==(unsigned short)-1 || (pa->lport1<=(pa->reverse ? rport : lport) && (pa->lport2>=(pa->reverse ? rport : lport)))) &&
+        (pa->port1==(unsigned short)-1 || (pa->port1<=(pa->reverse ? rport : lport) && (pa->port2>=(pa->reverse ? rport : lport)))) &&
+        (pa->lport1==(unsigned short)-1 || (pa->lport1<=(pa->reverse ? lport : rport) && (pa->lport2>=(pa->reverse ? lport : rport)))) &&
 #endif
         (*(unsigned long *)pa->mac==0 || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0);
     else
