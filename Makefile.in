@@ -6,15 +6,15 @@ all:	monitor
 
 monitor:	monitor.o acl.o stat.o config.o getclass.o
 	gcc $(COPT) @LDFLAGS@ -o monitor monitor.o acl.o stat.o config.o getclass.o @LIBS@
-monitor.o:	monitor.c monitor.h
+monitor.o:	monitor.c monitor.h Makefile
 	gcc $(COPT) -o monitor.o -c monitor.c
-acl.o:		acl.c monitor.h
+acl.o:		acl.c monitor.h Makefile
 	gcc $(COPT) -o acl.o -c acl.c
-stat.o:		stat.c monitor.h
+stat.o:		stat.c monitor.h Makefile
 	gcc $(COPT) -o stat.o -c stat.c
-config.o:	config.c monitor.h
+config.o:	config.c monitor.h Makefile
 	gcc $(COPT) -o config.o -c config.c
-getclass.o:	getclass.c monitor.h
+getclass.o:	getclass.c monitor.h Makefile
 	gcc $(COPT) -o getclass.o -c getclass.c
 
 testacl:	acl.c monitor.h
