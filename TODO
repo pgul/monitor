@@ -1,4 +1,4 @@
-- autodetect mymac
+- autodetect mymac for FreeBSD/BSDi/Solaris
 - src=, dst=
 - get pkt direction (lookup iface counters? divert socket under FreeBSD?)
 - ISL support
