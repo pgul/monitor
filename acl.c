@@ -82,7 +82,8 @@ int reload_acl(void)
 
 int find_mask(unsigned long remote)
 {
-  if (fromshmem) return getclass(htonl(remote));
+  if (fromshmem) return getclass(remote);
+  remote=ntohl(remote);
   if (remote==0xe0000005ul)
     return 1; /* ospf multicast */
   if ((remote & 0xff000000u) == 0x0a000000u ||
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
   if (argc<2) return 0;
   addr=inet_addr(argv[1]);
   reload_acl();
-  printf("%s\n", uaname[find_mask(ntohl(addr))]);
+  printf("%s\n", uaname[find_mask(addr)]);
   return 0;
 }
 #endif

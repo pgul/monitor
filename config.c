@@ -386,21 +386,23 @@ int config(char *name)
         for (p1=p; *p1 && (isdigit(*p1) || *p1=='.'); p1++);
         c=*p1;
         *p1='\0';
-        pa->ip = ntohl(inet_addr(p));
+        pa->ip = inet_addr(p);
         if (c=='/')
-          pa->mask<<=(32-atoi(p1+1));
+        { pa->mask<<=(32-atoi(p1+1));
+          pa->mask=htonl(pa->mask);
+        }
         *p1=c; p=p1;
         if ((pa->ip & pa->mask) != pa->ip)
         { unsigned long masked = (pa->ip & pa->mask);
           printf("Warning: %u.%u.%u.%u inconsistent with /%d (mask %u.%u.%u.%u)!\n",
-                 ((char *)&(pa->ip))[3], ((char *)&(pa->ip))[2],
-                 ((char *)&(pa->ip))[1], ((char *)&(pa->ip))[0],
+                 ((char *)&(pa->ip))[0], ((char *)&(pa->ip))[1],
+                 ((char *)&(pa->ip))[2], ((char *)&(pa->ip))[3],
                  atoi(p+1),
-                 ((char *)&(pa->mask))[3], ((char *)&(pa->mask))[2],
-                 ((char *)&(pa->mask))[1], ((char *)&(pa->mask))[0]);
+                 ((char *)&(pa->mask))[0], ((char *)&(pa->mask))[1],
+                 ((char *)&(pa->mask))[2], ((char *)&(pa->mask))[3]);
           printf("ip & mask is %u.%u.%u.%u\n",
-                 ((char *)&masked)[3], ((char *)&masked)[2],
-                 ((char *)&masked)[1], ((char *)&masked)[0]);
+                 ((char *)&masked)[0], ((char *)&masked)[1],
+                 ((char *)&masked)[2], ((char *)&masked)[3]);
         }
       }
       while (*p && !isspace(*p)) p++;
