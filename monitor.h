@@ -10,9 +10,12 @@
 #define RELOAD_INTERVAL	(60*10)
 #define MAXMACS		(16*256) /* size of hash-table */
 #define MAXCOLOIP	16
+#ifndef MAXPREFIX
 #define MAXPREFIX       24
-
+#endif
+#ifndef NBITS
 #define NBITS           2
+#endif
 #define NCLASSES	(1<<NBITS)
 #define MAPSIZE         (1<<MAXPREFIX)/(8/NBITS)
 #define MAPKEY          (*(long *)"gul@")
