@@ -87,6 +87,7 @@ left:
         (pa->vlan==(unsigned short)-1 || pa->vlan==vlan) &&
 #endif
         (pa->ip==0xfffffffful || (remote & pa->mask)==pa->ip) &&
+	(pa->proto==(unsigned short)-1 || pa->proto==proto) &&
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0))
       break;
   }

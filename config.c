@@ -163,6 +163,8 @@ int config(char *name)
       else if (strncmp(p, "vlan=", 5)==0)
         pa->vlan=atoi(p+5);
 #endif
+      else if (strncmp(p, "proto=", 6)==0)
+        pa->proto=atoi(p+6);
       else if (strncmp(p, "mac=", 4)==0)
       { short int m[3];
         sscanf(p+4, "%04hx.%04hx.%04hx", m, m+1, m+2);

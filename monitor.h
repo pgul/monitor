@@ -41,6 +41,7 @@ struct attrtype {
 #endif
 	struct linktype *link;
 	struct attrtype *next;
+	unsigned short proto;
 };
 
 extern struct attrtype *attrhead;
