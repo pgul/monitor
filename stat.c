@@ -45,7 +45,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
-  int src_ua, dst_ua, key, leftpacket, find;
+  int src_ua, dst_ua, key, leftpacket, find, snaped;
   struct attrtype *pa;
   sigset_t set, oset;
   struct mactype **mactable;
@@ -102,6 +102,7 @@ left:
   sigaddset(&set, SIGINFO);
   sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
+  snaped=0;
   for (pa=attrhead; pa; pa=pa->next)
   { find=0;
     if (dst_mac)
@@ -126,8 +127,11 @@ left:
     if (find)
     {
   leftpacket=0;
-  if (fsnap && !pa->fallthru)
+  if (!pa->link && !pa->fallthru)
+    break; // ignore
+  if (fsnap && !snaped)
   { 
+    snaped=1;
     if (dst_mac)
       fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK

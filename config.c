@@ -262,7 +262,7 @@ int config(char *name)
     { if (strcmp(pl->name, str)==0)
         break;
     }
-    if (!pl)
+    if (!pl && strcmp(str, "ignore"))
     { pl=calloc(1, sizeof(*pl));
       pl->next=linkhead;
       strcpy(pl->name, str);
