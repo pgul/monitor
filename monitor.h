@@ -84,3 +84,7 @@ int  config(char *name);
 classtype getclass(unsigned long addr);
 int  init_map(void);
 void freeshmem(void);
+#ifdef DO_PERL
+extern char perlfile[256], perlstart[256], perlwrite[256];
+extern char perlwritemac[256], perlstop[256];
+#endif
