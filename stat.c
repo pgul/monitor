@@ -37,7 +37,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 {
   u_long local, remote;
   u_char *remote_mac;
-  int in, src_ua, dst_ua, key;
+  int in, src_ua, dst_ua, key, leftpacket;
   struct attrtype *pa;
   sigset_t set, oset;
   struct mactype **mactable;
@@ -89,21 +89,18 @@ left:
   sigemptyset(&set);
   sigaddset(&set, SIGINFO);
   sigprocmask(SIG_BLOCK, &set, &oset);
+  leftpacket=1;
   for (pa=attrhead; pa; pa=pa->next)
   { if (
 #ifndef NO_TRUNK
         (pa->vlan==(unsigned short)-1 || pa->vlan==vlan) &&
 #endif
-        (pa->ip==0xfffffffful || (remote & pa->mask)==pa->ip) &&
+        (pa->ip==0xfffffffful || ((pa->link->reverse ? local : remote) & pa->mask)==pa->ip) &&
 	(pa->proto==(unsigned short)-1 || pa->proto==proto) &&
         (*(unsigned long *)pa->mac==0xfffffffful || memcmp(pa->mac, remote_mac, ETHER_ADDR_LEN)==0))
-      break;
-  }
-  if (pa==NULL)
-  { sigprocmask(SIG_SETMASK, &oset, NULL);
-    goto left;
-  }
-  if (fsnap)
+    {
+  leftpacket=0;
+  if (fsnap && !pa->link->reverse)
   { fprintf(fsnap, "%s %u.%u.%u.%u->%u.%u.%u.%u (%s.%s2%s.%s) %lu bytes ("
 #ifndef NO_TRUNK
         "vlan %d, "
@@ -139,12 +136,12 @@ left:
       mactable[key]->nip=1;
       mactable[key]->ip[0]=remote;
       memcpy(mactable[key]->mac, remote_mac, ETHER_ADDR_LEN);
-      mactable[key]->bytes[in][in ? dst_ua : src_ua]=len;
+      mactable[key]->bytes[pa->link->reverse^in][(in^pa->link->reverse) ? dst_ua : src_ua]=len;
       pa->link->nmacs++;
     }
     else
     {
-      mactable[key]->bytes[in][in ? dst_ua : src_ua]+=len;
+      mactable[key]->bytes[pa->link->reverse^in][(in^pa->link->reverse) ? dst_ua : src_ua]+=len;
       if (mactable[key]->ip[0]!=remote)
       {
         int i;
@@ -160,10 +157,15 @@ left:
       }
     }
   }
-  if ((pa->link->bytes[in][src_ua][dst_ua]+=len)>=0xf0000000lu ||
-      pa->link->nmacs>maxmacs/2)
+  if ((pa->link->bytes[in^pa->link->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
+      || pa->link->nmacs>maxmacs/2)
     write_stat();
+    }
+    if (!pa->link->reverse)
+      break;
+  }
   sigprocmask(SIG_SETMASK, &oset, NULL);
+  if (leftpacket) goto left;
 }
 
 void write_stat(void)

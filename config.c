@@ -167,6 +167,9 @@ int config(char *name)
       { if (pa->link->mactable==NULL)
           pa->link->mactable = calloc(MAXMACS, sizeof(struct mactype *));
       }
+      else if (strncmp(p, "reverse", 7)==0)
+      { pa->link->reverse=1;
+      }
 #ifndef NO_TRUNK
       else if (strncmp(p, "vlan=", 5)==0)
         pa->vlan=atoi(p+5);
