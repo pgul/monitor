@@ -160,9 +160,9 @@ left:
   if ((pa->link->bytes[in^pa->reverse][src_ua][dst_ua]+=len)>=0xf0000000lu
       || pa->link->nmacs>maxmacs/2)
     write_stat();
+  if (!pa->fallthru)
+    break;
     }
-    if (!pa->fallthru)
-      break;
   }
   sigprocmask(SIG_SETMASK, &oset, NULL);
   if (leftpacket) goto left;
