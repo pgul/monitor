@@ -20,6 +20,7 @@ struct colostat {
 	u_char mac[ETHER_ADDR_LEN];
 };
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
+u_char zeos_mac[ETHER_ADDR_LEN]={ZEOS_MAC};
 static struct colostat *mactable[256*16], *macarr[256*8];
 static int nmac;
 static char *linkname[]={
@@ -38,7 +39,8 @@ static char *linkname[]={
 	"zeos",
 	"cssuz",
 	"ugpp",
-	"merezha-icmp" };
+	"merezha-icmp", 
+	"wmnet" };
 static unsigned long bytes_link[NLINKS][2][3][3];
 static unsigned long bytes_local[2][3], bytes_colo[2][3];
 static unsigned long bytes_dialup[2][3], bytes_apollo[2][3];
@@ -118,10 +120,14 @@ findmac:
   {	src_ua = find_mask(src_ip);
         dst_ua = find_mask(dst_ip);
 	i=vlan-200;
-	if (vlan==209 && ((remote & 0xffffff00) == 0xc2998000 || remote == 0x3e950256))
+	if (vlan==209 && memcmp(remote_mac, zeos_mac, ETHER_ADDR_LEN)==0)
+	// if (vlan==209 && ((remote & 0xffffff00) == 0xc2998000 || remote == 0x3e950256))
 		i=NVLANS; /* zeos */
 	if (vlan==206 && proto==IPPROTO_ICMP)
-		i=NVLANS+3;
+		i=NVLANS+3; /* merezha-icmp */
+	if (vlan==200 && ((remote & 0xfffff000) == 0xd914a000 || remote == 0x3e950272))
+	// if (vlan==200 && memcmp(remote_mac, wnet_mac, ETHER_ADDR_LEN) == 0)
+		i=NVLANS+4; /* wnet */
 	counter=&(bytes_link[i][in][src_ua][dst_ua]);
 	if (uplinks[i]==2 && ((in ? dst_ua : src_ua) == 0))
 		strange=1;
@@ -235,10 +241,13 @@ void write_stat(void)
       for (k=0; k<3; k++)
         if (macarr[i]->bytes[j][k])
         {
-          fprintf(fout, "%04x.%04x.%04x.%s.%s: %lu bytes (",
-                  *(unsigned short *)macarr[i]->mac,
-                  *(unsigned short *)(macarr[i]->mac+2),
-                  *(unsigned short *)(macarr[i]->mac+4),
+          fprintf(fout, "%02x%02x.%02x%02x.%02x%02x.%s.%s: %lu bytes (",
+                  macaddr[i]->mac[0],
+                  macaddr[i]->mac[1],
+                  macaddr[i]->mac[2],
+                  macaddr[i]->mac[3],
+                  macaddr[i]->mac[4],
+                  macaddr[i]->mac[5],
                   uaname[k], j ? "in" : "out",
                   macarr[i]->bytes[j][k]);
           for (link=0; link<macarr[i]->nip && link<MAXCOLOIP; link++)

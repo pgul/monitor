@@ -17,24 +17,33 @@ time_t last_write, last_reload;
 static long snap_traf;
 static FILE *fsnap;
 extern u_char my_mac[ETHER_ADDR_LEN];
+pcap_t *pk;
+char *saved_argv[20];
 
 void hup(int signo)
 {
-  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT)
+  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR3)
     write_stat();
   if (signo==SIGINT || signo==SIGTERM)
     exit(0);
   if (signo==SIGUSR1)
     reload_acl();
   if (signo==SIGUSR2)
-  { if (fsnap) fclose(fsnap);
-    snap_traf=1024*1024; /* snap 1M of traffic */
+  { /* snap 1M of traffic */
+    if (fsnap) fclose(fsnap);
+    snap_traf=1024*1024; 
     fsnap=fopen(SNAPFILE, "a");
     if (fsnap==NULL) snap_traf=0;
     else
     { time_t curtime=time(NULL);
       fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
     }
+  }
+  if (signo==SIGUSR3)
+  { /* restart myself */
+    pcap_close(pk);
+    execvp(saved_argv[0], saved_argv);
+    exit(5);
   }
   signal(signo, hup);
 }
@@ -120,10 +129,12 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 
 int main(int argc, char *argv[])
 {
-  pcap_t *pk;
   char ebuf[4096]="";
+  int i;
 
   pk = pcap_open_live(IFACE, MTU, 1, 0, ebuf);
+  for (i=0; i<=argc; i++)
+    saved_argv[i]=argv[i];
   if (pk)
   {
     last_write=time(NULL);

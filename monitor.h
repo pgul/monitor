@@ -8,6 +8,8 @@
 #define RELOAD_INTERVAL	(60*10)
 #define MAXCOLOIP	10
 
+#define ZEOS_MAC	0x00,0x02,0xb9,0xbb,0x77,0xf0
+
 extern time_t last_write, last_reload;
 
 int find_mask(unsigned long addr);
