@@ -1,10 +1,10 @@
-#define CONFNAME	"/usr/local/etc/monitor.conf"
+#define CONFNAME	CONFDIR "/monitor.conf"
 #define IFACE		"fxp1"
 #define MTU		2048
 #define MYMAC		0x00,0x30,0x80,0x35,0x50,0x43
-#define LOGNAME		"/var/log/monitor/monitor"
-#define SNAPFILE	"/var/log/monitor/snap"
-#define ACLNAME		"/usr/local/etc/monitor.acl"
+#define LOGNAME		LOGDIR "/monitor"
+#define SNAPFILE	LOGDIR "/snap"
+#define ACLNAME		CONFDIR "/monitor.acl"
 #define PIDFILE		"/var/run/monitor.pid"
 #define WRITE_INTERVAL	(60*60)
 #define RELOAD_INTERVAL	(60*10)

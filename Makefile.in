@@ -1,5 +1,6 @@
 
-COPT=-Wall -O3 -m486 -funsigned-char @DEFS@ @CFLAGS@
+prefix=@prefix@
+COPT=-Wall -O3 -m486 -funsigned-char @DEFS@ -DCONFDIR=\"@sysconfdir@\" @CFLAGS@
 
 all:	monitor
 

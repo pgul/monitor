@@ -51,4 +51,11 @@ case x$do_trunk in
     ;;
 esac
 
+dnl Set dirs
+logdir=/var/log/monitor
+AC_ARG_WITH(logdir,
+     [  --with-logdir=path      log files directory (default /var/log/monitor)],
+     [logdir=$withval],[])
+AC_DEFINE_UNQUOTED(LOGDIR, "$logdir")
+
 AC_OUTPUT(Makefile)
