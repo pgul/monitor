@@ -80,6 +80,10 @@ pcap_t *pk;
 char *saved_argv[20];
 char *confname;
 int  linktype;
+static char *dlt[] = {
+ "null", "ethernet", "eth3m", "ax25", "pronet", "chaos",
+ "ieee802", "arcnet", "slip", "ppp", "fddi", "llc/snap atm", "raw ip",
+ "bsd/os slip", "bsd/os ppp", "lane 802.3", "atm" };
 
 void hup(int signo)
 {
@@ -202,7 +206,11 @@ int main(int argc, char *argv[])
         fclose(f);
       }
       linktype = pcap_datalink(pk);
-      pcap_loop(pk, -1, dopkt, NULL);
+      if (linktype != DLT_EN10MB && linktype != DLT_RAW)
+        printf("Unsupported link type %s!\n",
+          (linktype>0 && linktype<sizeof(dlt)/sizeof(dlt[0])) ? dlt[linktype] : "unspec");
+      else
+        pcap_loop(pk, -1, dopkt, NULL);
       unlink(pidfile);
     }
     pcap_close(pk);
