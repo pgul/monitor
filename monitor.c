@@ -28,6 +28,7 @@ struct pcap_pkthdr {
 	unsigned caplen;     /* length of portion present */
 	unsigned len;        /* length this packet (off wire) */
 };                                                                 
+typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char *);
 pcap_t	*pcap_open_live(char *, int, int, int, char *);
 void	pcap_close(pcap_t *);
 int	pcap_loop(pcap_t *, int, pcap_handler, u_char *);
@@ -183,7 +184,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     }
   }
 #endif
-  add_stat(eth_hdr->ether_shost, eth_hdr->ether_dhost,
+  add_stat((u_char *)&eth_hdr->ether_shost, (u_char *)&eth_hdr->ether_dhost,
            *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
            hdr->len-((char *)ip_hdr - (char *)eth_hdr),
 #ifndef NO_TRUNK
@@ -226,7 +227,7 @@ int main(int argc, char *argv[])
     else
     { FILE *f=fopen(pidfile, "w");
       if (f)
-      { fprintf(f, "%u\n", getpid());
+      { fprintf(f, "%u\n", (unsigned)getpid());
         fclose(f);
       }
       pcap_loop(pk, -1, dopkt, NULL);

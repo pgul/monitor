@@ -44,7 +44,7 @@ case x$ac_cv_func_inet_aton in
     OLD_LIBS=$LIBS
     LIBS="$LIBS -lxnet"
     AC_TRY_LINK([#include <arpa/inet.h>],[inet_aton("");],
-                AC_MSG_RESULT(yes), AC_MSG_RESULT(no) AC_ERROR(no aton() found)
+               AC_MSG_RESULT(yes), AC_MSG_RESULT(no); AC_ERROR(no aton() found))
     ;;
 esac
 
