@@ -14,6 +14,9 @@
 #include <net/if.h>
 #include <netinet/if_ether.h>
 #endif
+#ifndef ETHER_ADDR_LEN
+#define ETHER_ADDR_LEN 6
+#endif
 #include "monitor.h"
 
 struct linktype *linkhead=NULL;

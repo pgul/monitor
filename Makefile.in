@@ -1,11 +1,11 @@
 
 prefix=@prefix@
-COPT=-Wall -O3 -m486 -funsigned-char @DEFS@ -DCONFDIR=\"@sysconfdir@\" @CFLAGS@
+COPT=-Wall -O3 -funsigned-char @DEFS@ -DCONFDIR=\"@sysconfdir@\" @CFLAGS@
 
 all:	monitor
 
 monitor:	monitor.o acl.o stat.o config.o getclass.o
-	gcc $(COPT) -o monitor monitor.o acl.o stat.o config.o getclass.o -lpcap
+	gcc $(COPT) -o monitor monitor.o acl.o stat.o config.o getclass.o -lpcap @LIBS@
 monitor.o:	monitor.c monitor.h
 	gcc $(COPT) -o monitor.o -c monitor.c
 acl.o:		acl.c monitor.h
