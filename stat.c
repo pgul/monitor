@@ -66,7 +66,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifdef WITH_PORTS
      u_short sport, u_short dport,
 #endif
-     int len)
+     int len, int hit)
 {
   u_char *remote_mac=in ? src_mac : dst_mac;
   char str_src_ip[20], str_dst_ip[20];
@@ -94,7 +94,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifndef NO_TRUNK
       "vlan %d, "
 #endif
-      "mac %02x%02x.%02x%02x.%02x%02x)\n",
+      "mac %02x%02x.%02x%02x.%02x%02x) hit: %d\n",
       ((in^pa->reverse) ? "<-" : "->"), str_src_ip, str_dst_ip, protos[proto],
       pa->link ? pa->link->name : "unknown", uaname[src_ua], uaname[dst_ua],
       ((in^pa->reverse) ? "in" : "out"), len,
@@ -102,19 +102,19 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
       vlan,
 #endif
       remote_mac[0], remote_mac[1], remote_mac[2],
-      remote_mac[3], remote_mac[4], remote_mac[5]);
+      remote_mac[3], remote_mac[4], remote_mac[5], hit);
   else
     fprintf(fsnap, 
 #ifdef HAVE_PKTTYPE
                   "%s "
 #endif
-                  "%s->%s %s (%s.%s2%s.%s) %u bytes\n",
+                  "%s->%s %s (%s.%s2%s.%s) %u bytes hit: %d\n",
 #ifdef HAVE_PKTTYPE
       ((in^pa->reverse) ? "<-" : "->"),
 #endif
       str_src_ip, str_dst_ip, protos[proto],
       pa->link->name, uaname[src_ua], uaname[dst_ua],
-      ((in^pa->reverse) ? "in" : "out"), len);
+      ((in^pa->reverse) ? "in" : "out"), len, hit);
   fflush(fsnap);
   if ((snap_traf-=len) <= 0)
   { fclose(fsnap);
@@ -181,7 +181,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
-  int src_ua, dst_ua, leftpacket, find, snaped, hash, ohash;
+  int src_ua, dst_ua, leftpacket, find, snaped, hash, ohash, hit;
   struct attrtype *pa;
   sigset_t set, oset;
   struct cachetype *pcache;
@@ -226,7 +226,7 @@ left:
 #ifdef WITH_PORTS
           sport, dport,
 #endif
-          len);
+          len, 0);
 #endif
       return;
     }
@@ -247,7 +247,9 @@ left:
 #endif
          proto) % CACHESIZE;
   ohash = hash;
+  hit = 0;
   for (; cache[hash].attr; hash=(hash+1)%CACHESIZE) {
+    hit++;
     if (cache[hash].src_ip==src_ip && cache[hash].dst_ip==dst_ip &&
 #ifndef NO_TRUNK
         cache[hash].proto==vlan &&
@@ -267,7 +269,7 @@ left:
 #ifdef WITH_PORTS
             sport, dport,
 #endif
-            len);
+            len, hit);
         for (pcache=cache+hash;; pcache=cache+pcache->next)
         { if (pcache->attr->link)
           { if (remote_mac && pcache->attr->link->mactable)
@@ -379,7 +381,7 @@ left:
 #ifdef WITH_PORTS
           sport, dport,
 #endif
-          len);
+          len, 0);
         snaped=1;
       }
       if (remote_mac && pa->link->mactable != NULL)
