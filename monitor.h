@@ -31,7 +31,7 @@ struct linktype {
 	struct linktype *next;
 	struct mactype **mactable;
 	int nmacs;
-	int reverse;
+	int reverse, fallthru;
 };
 
 struct attrtype {

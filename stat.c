@@ -161,7 +161,7 @@ left:
       || pa->link->nmacs>maxmacs/2)
     write_stat();
     }
-    if (!pa->link->reverse)
+    if (!pa->link->fallthru)
       break;
   }
   sigprocmask(SIG_SETMASK, &oset, NULL);

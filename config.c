@@ -170,6 +170,9 @@ int config(char *name)
       else if (strncmp(p, "reverse", 7)==0)
       { pa->link->reverse=1;
       }
+      else if (strncmp(p, "fallthru", 8)==0)
+      { pa->link->fallthru=1;
+      }
 #ifndef NO_TRUNK
       else if (strncmp(p, "vlan=", 5)==0)
         pa->vlan=atoi(p+5);
