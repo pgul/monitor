@@ -68,6 +68,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
   char str_src_ip[20], str_dst_ip[20];
   static char protos[256][16];
 
+#ifdef WITH_PORTS
   if (sport)
   { sprintf(str_src_ip, "%u.%u.%u.%u:%u", ((char *)&src_ip)[0],
        ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3], sport);
@@ -75,6 +76,7 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
        ((char *)&dst_ip)[1], ((char *)&dst_ip)[2], ((char *)&dst_ip)[3], dport);
   }
   else
+#endif
   { sprintf(str_src_ip, "%u.%u.%u.%u", ((char *)&src_ip)[0],
        ((char *)&src_ip)[1], ((char *)&src_ip)[2], ((char *)&src_ip)[3]);
     sprintf(str_dst_ip, "%u.%u.%u.%u", ((char *)&dst_ip)[0],
