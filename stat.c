@@ -258,13 +258,14 @@ void write_stat(void)
           }
           if (macarr[i]->nip>MAXCOLOIP)
             fprintf(fout, ", ... - %u addresses", macarr[i]->nip);
-          fprintf(fout, ")\n");
+          fputs(")\n", fout);
         }
     free(macarr[i]->ip);
     free(macarr[i]);
   }
   nmac=0;
   memset(mactable, 0, sizeof(mactable));
+  fputs("\n", fout);
 
   fclose(fout);
 }
