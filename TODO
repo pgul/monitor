@@ -3,3 +3,4 @@
 - get pkt direction (lookup iface counters? divert socket under FreeBSD?)
 - ISL support
 - another DLT (PPP, SLIP, ...)
+- monstat
