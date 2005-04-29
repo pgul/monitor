@@ -398,11 +398,19 @@ left:
 }
 
 #ifdef DO_PERL
+
+#ifndef pTHX_
+#define pTHX_
+#endif
+#ifndef pTHX
+#define pTHX
+#endif
+
 static PerlInterpreter *perl = NULL;
 
-void boot_DynaLoader(CV *cv);
+void boot_DynaLoader(pTHX_ CV *cv);
 
-static void xs_init(void)
+static void xs_init(pTHX)
 {
   static char *file = __FILE__;
   dXSUB_SYS;
