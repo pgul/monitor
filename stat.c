@@ -550,7 +550,9 @@ static void plwritemac(char *mac, char *ua, char *direct, int bytes)
 
 #ifdef DO_MYSQL
 #include <mysql.h>
+#ifdef HAVE_GETOPT_H
 #include <getopt.h>
+#endif
 
 #if !defined(MYSQL_VERSION_ID) || MYSQL_VERSION_ID<32224
 #define mysql_field_count mysql_num_fields
