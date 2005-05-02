@@ -352,6 +352,51 @@ int usage(void)
   return 0;
 }
 
+#if defined(__FreeBSD__)
+#include <net/if_dl.h>
+#include <ifaddrs.h>
+#include <net/if_types.h>
+static int get_mac(const char *iface, unsigned char *mac)
+{
+  struct ifaddrs *ifap, *ifa;
+  struct sockaddr_dl *sa;
+  int rc=-1;
+
+  if (getifaddrs(&ifap))
+    return -1;
+  for (ifa=ifap; ifa; ifa=ifa->ifa_next) {
+    if (ifa->ifa_addr->sa_family != AF_LINK) continue;
+    if (strcmp(ifa->ifa_name, iface)) continue;
+    sa = (struct sockaddr_dl *)ifa->ifa_addr;
+    if (sa->sdl_type == IFT_ETHER) {
+      memcpy(mac, sa->sdl_data+sa->sdl_nlen, 6);
+      rc=0;
+    }
+    break;
+  }
+  freeifaddrs(ifap);
+  return rc;
+}
+#elif defined(SIOCGIFHWADDR)
+static int get_mac(const char *iface, unsigned char *mac)
+{
+  struct ifreq ifr;
+  int fd = socket(PF_INET, SOCK_DGRAM, 0);
+  if (fd >= 0)
+  {
+    memset(&ifr, 0, sizeof(ifr));
+    strcpy(ifr.ifr_name, iface);
+    if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
+        ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
+    memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    close(fd);
+  }
+  return 0;
+}
+#else
+#define get_mac(iface, mac)	0
+#endif
+
 int main(int argc, char *argv[])
 {
   char ebuf[PCAP_ERRBUF_SIZE]="";
@@ -454,27 +499,13 @@ int main(int argc, char *argv[])
       {
         struct bpf_program fcode;
         bpf_u_int32 localnet, netmask;
-#ifdef SIOCGIFHWADDR
 #ifdef HAVE_PCAP_OPEN_LIVE_NEW
         if (real_linktype == DLT_EN10MB
 #else
         if (linktype == DLT_EN10MB
 #endif
             && memcmp(my_mac, nullmac, ETHER_ADDR_LEN)==0)
-        { /* autodetect mac-addr */
-          struct ifreq ifr;
-          int fd = socket(PF_INET, SOCK_DGRAM, 0);
-          if (fd >= 0)
-          {
-            memset(&ifr, 0, sizeof(ifr));
-            strcpy(ifr.ifr_name, iface);
-            if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
-                ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
-              memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-            close(fd);
-          }
-        }
-#endif
+	  get_mac(iface, my_mac);
         if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
         { fprintf(origerr, "pcap_lookupnet error: %s\n", ebuf);
           netmask = localnet = 0;
