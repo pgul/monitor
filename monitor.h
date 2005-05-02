@@ -74,6 +74,7 @@ extern u_char my_mac[ETHER_ADDR_LEN];
 
 extern time_t last_write, last_reload;
 extern struct linktype *linkhead;
+extern int  preproc;
 extern char iface[];
 extern char logname[], snapfile[], aclname[], pidfile[];
 extern int  write_interval, reload_interval;

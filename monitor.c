@@ -122,6 +122,7 @@ struct sll_header {
 };
 #endif
 
+int  preproc;
 time_t last_write, last_reload;
 long snap_traf;
 FILE *fsnap, *origerr;
@@ -347,6 +348,7 @@ int usage(void)
   printf("    Usage:\n");
   printf("monitor [-d] [config]\n");
   printf("  -d  - daemonize\n");
+  printf("  -E  - dump preprocessed config and exit\n");
   return 0;
 }
 
@@ -361,11 +363,12 @@ int main(int argc, char *argv[])
     saved_argv[i]=argv[i];
   confname=CONFNAME;
   daemonize=0;
-  while ((i=getopt(argc, argv, "dh?")) != -1)
+  while ((i=getopt(argc, argv, "dhE?")) != -1)
   {
     switch (i)
     {
       case 'd': daemonize=1; break;
+      case 'E': preproc=1;   break;
       case 'h':
       case '?': usage(); return 1;
       default:  fprintf(stderr, "Unknown option -%c\n", (char)i);
@@ -394,6 +397,8 @@ int main(int argc, char *argv[])
   { fprintf(origerr, "Config error\n");
     return 1;
   }
+  if (preproc)
+    return 0;
   if (daemonize)
     daemon(0, 0);
   if (strcmp(iface, "all") == 0)

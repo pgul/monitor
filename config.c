@@ -147,6 +147,8 @@ static int parse_line(char *str)
   if (p!=str) strcpy(str, p);
   if (str[0]=='\0') return 0;
   for (p=str+strlen(str)-1; isspace(*p); *p--='\0');
+  if (preproc)
+    printf("%s\n", str);
   p=str;
   if (strncmp(p, "mymac=", 6)==0)
   { short int m[3];
