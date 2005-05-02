@@ -235,6 +235,11 @@ left:
   }
   sigemptyset(&set);
   sigaddset(&set, SIGINFO);
+  sigaddset(&set, SIGUSR1);
+  sigaddset(&set, SIGUSR2);
+  sigaddset(&set, SIGHUP);
+  sigaddset(&set, SIGINT);
+  sigaddset(&set, SIGTERM);
   sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
   hash = (*(u_short *)(void *)&src_ip+*((u_short *)(void *)&src_ip+1)+

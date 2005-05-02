@@ -99,6 +99,8 @@ int  config(char *name);
 classtype getclass(unsigned long addr);
 int  init_map(void);
 void freeshmem(void);
+void warning(char *format, ...);
+void error(char *format, ...);
 #ifdef DO_PERL
 void exitperl(void);
 int  PerlStart(void);

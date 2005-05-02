@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include <stdarg.h>
+#include <syslog.h>
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
@@ -488,4 +490,31 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+
+void warning(char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  vsyslog(LOG_WARNING, format, ap);
+  va_end(ap);
+  va_start(ap, format);
+  vfprintf(stderr, format, ap);
+  fprintf(stderr, "\n");
+  va_end(ap);
+}
+
+void error(char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  vsyslog(LOG_ERR, format, ap);
+  va_end(ap);
+  va_start(ap, format);
+  vfprintf(stderr, format, ap);
+  fprintf(stderr, "\n");
+  va_end(ap);
+}
+
 
