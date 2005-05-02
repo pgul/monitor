@@ -102,13 +102,25 @@ int  init_map(void);
 void freeshmem(void);
 void warning(char *format, ...);
 void error(char *format, ...);
+
 #ifdef DO_PERL
+int  PerlStart(char *perlfile);
 void exitperl(void);
-int  PerlStart(void);
+void plstart(void);
+void plstop(void);
+void plwrite(char *user, char *src, char *dst, char *direct, int bytes);
+void plwritemac(char *mac, char *ua, char *direct, int bytes);
+void perl_call(char *file, const char *func, char **args);
 
 extern char perlfile[], perlstart[], perlwrite[];
 extern char perlwritemac[], perlstop[];
+#else
+#define plstart()
+#define plstop()
+#define plwrite(user, src, dst, direct, bytes)
+#define plwritemac(mac, ua, direct, bytes)
 #endif
+
 #ifdef DO_MYSQL
 extern char mysql_user[256], mysql_pwd[256], mysql_host[256];
 extern char mysql_socket[256], mysql_db[256];

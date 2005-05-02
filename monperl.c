@@ -180,22 +180,24 @@ void perl_call(char *file, const char *func, char **args)
 
   if (PerlStart(file))
     return;
-  dSP;
-  ENTER;
-  SAVETMPS;
-  PUSHMARK(SP);
-  while (*args)
   {
-    XPUSHs(sv_2mortal(newSVpv(*args, 0)));
-    args++;
+    dSP;
+    ENTER;
+    SAVETMPS;
+    PUSHMARK(SP);
+    while (*args)
+    {
+      XPUSHs(sv_2mortal(newSVpv(*args, 0)));
+      args++;
+    }
+    PUTBACK;
+    perl_call_pv(func, G_EVAL|G_SCALAR);
+    SPAGAIN;
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+    if (SvTRUE(ERRSV))
+      warning("Perl eval error: %s", SvPV(ERRSV, n_a));
+    exitperl();
   }
-  PUTBACK;
-  perl_call_pv(func, G_EVAL|G_SCALAR);
-  SPAGAIN;
-  PUTBACK;
-  FREETMPS;
-  LEAVE;
-  if (SvTRUE(ERRSV))
-    warning("Perl eval error: %s", SvPV(ERRSV, n_a));
-  exitperl();
 }
