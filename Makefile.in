@@ -8,7 +8,7 @@ COPT=-Wall -funsigned-char @DEFS@ -DCONFDIR=\"@sysconfdir@\" @CFLAGS@
 	@echo Compiling $*.c...
 	@$(CC) -c $(COPT) -o $*.o $*.c
 
-SRCS=monitor.c acl.c stat.c config.c getclass.c
+SRCS=monitor.c acl.c stat.c config.c getclass.c @perlsrc@
 OBJS=${SRCS:.c=.o}
 
 all:	monitor
@@ -22,6 +22,7 @@ acl.o:		acl.c monitor.h Makefile
 stat.o:		stat.c monitor.h Makefile
 config.o:	config.c monitor.h Makefile
 getclass.o:	getclass.c monitor.h Makefile
+monperl.o:	monperl.c monitor.h Makefile
 
 testacl:	acl.c monitor.h
 	gcc $(COPT) @LDFLAGS@ -DDEBUG=1 -o testacl acl.c

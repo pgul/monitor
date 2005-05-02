@@ -110,7 +110,7 @@ void plstart(void);
 void plstop(void);
 void plwrite(char *user, char *src, char *dst, char *direct, int bytes);
 void plwritemac(char *mac, char *ua, char *direct, int bytes);
-void perl_call(char *file, const char *func, char **args);
+void perl_call(char *file, char *func, char **args);
 
 extern char perlfile[], perlstart[], perlwrite[];
 extern char perlwritemac[], perlstop[];

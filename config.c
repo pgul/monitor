@@ -584,7 +584,7 @@ int config(char *name)
     }
   }
 #ifdef DO_PERL
-  PerlStart();
+  PerlStart(perlfile);
 #endif
   return 0;
 }

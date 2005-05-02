@@ -176,7 +176,8 @@ case x$do_perl in
           #include <EXTERN.h>
           #include <perl.h>
           #include <XSUB.h>],[perl_alloc()],
-        AC_DEFINE(DO_PERL) AC_MSG_RESULT(yes); WORKING_PERL=yes,
+        AC_DEFINE(DO_PERL) AC_MSG_RESULT(yes); WORKING_PERL=yes;
+	perlsrc=monperl.c,
         AC_MSG_RESULT(no); CFLAGS=$OLD_CFLAGS; LIBS=$OLD_LIBS,
         AC_MSG_RESULT(cross-compiling. No assumptions made); CFLAGS=$OLD_CFLAGS; LIBS=$OLD_LIBS
        )
@@ -265,5 +266,6 @@ fi
 
 AC_DEFINE_UNQUOTED(NBITS, $nbits)
 AC_DEFINE_UNQUOTED(MAXPREFIX, $maxprefix)
+AC_SUBST(perlsrc)
 
 AC_OUTPUT(Makefile)

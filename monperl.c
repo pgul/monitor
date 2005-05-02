@@ -174,7 +174,7 @@ void plwritemac(char *mac, char *ua, char *direct, int bytes)
   }
 }
 
-void perl_call(char *file, const char *func, char **args)
+void perl_call(char *file, char *func, char **args)
 {
   STRLEN n_a;
 
