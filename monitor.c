@@ -346,7 +346,7 @@ int usage(void)
 {
   printf("IP traffic monitoring      " __DATE__ "\n");
   printf("    Usage:\n");
-  printf("monitor [-d] [config]\n");
+  printf("monitor [-d] [-E] [config]\n");
   printf("  -d  - daemonize\n");
   printf("  -E  - dump preprocessed config and exit\n");
   return 0;
