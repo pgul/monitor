@@ -387,7 +387,7 @@ static int get_mac(const char *iface, unsigned char *mac)
     strcpy(ifr.ifr_name, iface);
     if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
         ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
-    { memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    { memcpy(mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
       rc=0;
     }
     close(fd);
