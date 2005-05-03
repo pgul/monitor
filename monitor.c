@@ -379,20 +379,56 @@ static int get_mac(const char *iface, unsigned char *mac)
 static int get_mac(const char *iface, unsigned char *mac)
 {
   struct ifreq ifr;
-  int fd = socket(PF_INET, SOCK_DGRAM, 0);
+  int rc=-1, fd = socket(PF_INET, SOCK_DGRAM, 0);
   if (fd >= 0)
   {
     memset(&ifr, 0, sizeof(ifr));
     strcpy(ifr.ifr_name, iface);
     if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0 &&
         ifr.ifr_hwaddr.sa_family == 1 /* ARPHRD_ETHER */)
-    memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+    { memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+      rc=0;
+    }
     close(fd);
   }
-  return 0;
+  return rc;
 }
 #else
-#define get_mac(iface, mac)	(void)0
+static int void get_mac(const char *iface, unsigned char *mac)
+{
+  char cmd[80], str[256], *p, *smac=NULL;
+  FILE *fout;
+  unsigned short m[6];
+  int rc=-1;
+
+  snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s", iface);
+  cmd[sizeof(cmd)-1]='\0';
+  if ((fout=popen(cmd, "r")) == NULL)
+    return -1;
+  while (fgets(str, sizeof(str), fout))
+  {
+    for (p=str; *p; p++) *p=tolower(*p);
+    if ((p=strstr(str, "hwaddr ")) || (p=strstr(str, "ether ")))
+    {
+      while (*p && !isspace(*p)) p++;
+      while (*p && isspace(*p)) p++;
+      if (rc == 0) next;
+      if (sscanf(p, "%hx:%hx:%hx:%hx:%hx:%hx", m, m+1, m+2, m+3, m+4, m+5) == 6)
+        if (((m[0]|m[1]|m[2]|m[3]|m[4]|m[5]) & 0xff00) != 0)
+	{
+          mac[0] = (unsigned char)m[0];
+          mac[1] = (unsigned char)m[1];
+          mac[2] = (unsigned char)m[2];
+          mac[3] = (unsigned char)m[3];
+          mac[4] = (unsigned char)m[5];
+          mac[5] = (unsigned char)m[5];
+          rc=0;
+        }
+    }
+  }
+  pclose(fout);
+  return rc;
+}
 #endif
 
 int main(int argc, char *argv[])
