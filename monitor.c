@@ -137,9 +137,7 @@ static char *dlt[] = {
  "null", "ethernet", "eth3m", "ax25", "pronet", "chaos",
  "ieee802", "arcnet", "slip", "ppp", "fddi", "llc/snap atm", "raw ip",
  "bsd/os slip", "bsd/os ppp", "lane 802.3", "atm" };
-#ifdef SIOCGIFHWADDR
 static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
-#endif
 
 void hup(int signo)
 {

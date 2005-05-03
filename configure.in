@@ -51,7 +51,7 @@ case x$ac_cv_func_inet_addr in
     ;;
 esac
 
-AC_CHECK_FUNCS(daemon)
+AC_CHECK_FUNCS(daemon getifaddrs)
 
 OLD_LIBS=$LIBS
 LIBS="$LIBS -lpcap"
