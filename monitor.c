@@ -394,9 +394,9 @@ static int get_mac(const char *iface, unsigned char *mac)
   return rc;
 }
 #else
-static int void get_mac(const char *iface, unsigned char *mac)
+static int get_mac(const char *iface, unsigned char *mac)
 {
-  char cmd[80], str[256], *p, *smac=NULL;
+  char cmd[80], str[256], *p;
   FILE *fout;
   unsigned short m[6];
   int rc=-1;
@@ -412,7 +412,7 @@ static int void get_mac(const char *iface, unsigned char *mac)
     {
       while (*p && !isspace(*p)) p++;
       while (*p && isspace(*p)) p++;
-      if (rc == 0) next;
+      if (rc == 0) continue;
       if (sscanf(p, "%hx:%hx:%hx:%hx:%hx:%hx", m, m+1, m+2, m+3, m+4, m+5) == 6)
         if (((m[0]|m[1]|m[2]|m[3]|m[4]|m[5]) & 0xff00) != 0)
 	{
