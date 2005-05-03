@@ -352,7 +352,7 @@ int usage(void)
   return 0;
 }
 
-#if defined(__FreeBSD__)
+#if defined(HAVE_GETIFADDRS)
 #include <net/if_dl.h>
 #include <ifaddrs.h>
 #include <net/if_types.h>
