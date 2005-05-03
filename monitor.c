@@ -392,7 +392,7 @@ static int get_mac(const char *iface, unsigned char *mac)
   return 0;
 }
 #else
-#define get_mac(iface, mac)	0
+#define get_mac(iface, mac)	(void)0
 #endif
 
 int main(int argc, char *argv[])
