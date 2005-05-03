@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include <syslog.h>
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
