@@ -577,14 +577,14 @@ int config(char *name)
   }
   parse_file(f);
   fclose(f);
-  if (fromshmem)
+  if (fromshmem && !preproc)
   { if (init_map())
     { printf("Can't init shared memory: %s\n", strerror(errno));
       return 1;
     }
   }
 #ifdef DO_PERL
-  PerlStart(perlfile);
+  if (!preproc) PerlStart(perlfile);
 #endif
   return 0;
 }
