@@ -415,7 +415,7 @@ static int get_mac(const char *iface, unsigned char *mac)
       while (*p && isspace(*p)) p++;
       if (rc == 0) continue;
       if (sscanf(p, "%hx:%hx:%hx:%hx:%hx:%hx", m, m+1, m+2, m+3, m+4, m+5) == 6)
-        if (((m[0]|m[1]|m[2]|m[3]|m[4]|m[5]) & 0xff00) != 0)
+        if (((m[0]|m[1]|m[2]|m[3]|m[4]|m[5]) & 0xff00) == 0)
 	{
           mac[0] = (unsigned char)m[0];
           mac[1] = (unsigned char)m[1];
