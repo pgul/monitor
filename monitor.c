@@ -421,7 +421,7 @@ static int get_mac(const char *iface, unsigned char *mac)
           mac[1] = (unsigned char)m[1];
           mac[2] = (unsigned char)m[2];
           mac[3] = (unsigned char)m[3];
-          mac[4] = (unsigned char)m[5];
+          mac[4] = (unsigned char)m[4];
           mac[5] = (unsigned char)m[5];
           rc=0;
         }
