@@ -540,7 +540,12 @@ int main(int argc, char *argv[])
         if (linktype == DLT_EN10MB
 #endif
             && memcmp(my_mac, nullmac, ETHER_ADDR_LEN)==0)
+	{
 	  get_mac(iface, my_mac);
+	  warning("mac-addr for %s is %02x:%02x:%02x:%02x:%02x:%02x",
+		  iface, my_mac[0], my_mac[1], my_mac[2], my_mac[3],
+		  my_mac[4], my_mac[5]);
+	}
         if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
         { fprintf(origerr, "pcap_lookupnet error: %s\n", ebuf);
           netmask = localnet = 0;
