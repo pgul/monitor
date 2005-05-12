@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <time.h>
@@ -175,7 +174,6 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
   u_char *remote_mac=NULL;
   int src_ua, dst_ua, leftpacket, find, snaped, hash, ohash, hit;
   struct attrtype *pa;
-  sigset_t set, oset;
   struct cachetype *pcache;
 #ifdef WITH_PORTS
   u_short lport=0, rport=0;
@@ -225,14 +223,6 @@ left:
   } else
   { /* raw IP, no macs */
   }
-  sigemptyset(&set);
-  sigaddset(&set, SIGINFO);
-  sigaddset(&set, SIGUSR1);
-  sigaddset(&set, SIGUSR2);
-  sigaddset(&set, SIGHUP);
-  sigaddset(&set, SIGINT);
-  sigaddset(&set, SIGTERM);
-  sigprocmask(SIG_BLOCK, &set, &oset);
   leftpacket=1;
   hash = (*(u_short *)(void *)&src_ip+*((u_short *)(void *)&src_ip+1)+
          *(u_short *)(void *)&dst_ip*2+*((u_short *)(void *)&dst_ip+1)*2+
@@ -390,7 +380,6 @@ left:
         break;
     }
   }
-  sigprocmask(SIG_SETMASK, &oset, NULL);
   if (leftpacket) goto left;
 }
 
