@@ -549,6 +549,7 @@ int main(int argc, char *argv[])
           pcap_setfilter(pk, &fcode);
 // fprintf(origerr, "localnet %s, ", inet_ntoa(*(struct in_addr *)&localnet));
 // fprintf(origerr, "netmask %s\n", inet_ntoa(*(struct in_addr *)&netmask));
+        switchsignals(SIG_UNBLOCK);
         pcap_loop(pk, -1, dopkt, ebuf);
         fprintf(origerr, "pcap_loop error: %s\n", ebuf);
       }
