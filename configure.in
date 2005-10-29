@@ -9,7 +9,7 @@ AC_PATH_PROG(PERL, perl, perl)
 CFLAGS=
 dnl Checks for header files.
 AC_CHECK_HEADERS(sys/ioctl.h net/if_vlan_var.h net/ethernet.h)
-AC_CHECK_HEADERS(netinet/if_ether.h pcap.h getopt.h)
+AC_CHECK_HEADERS(netinet/if_ether.h pcap.h getopt.h net/if_dl.h)
 case x$ac_cv_header_pcap_h in
   xno)
     AC_CHECK_HEADERS(pcap/pcap.h)

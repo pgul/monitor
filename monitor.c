@@ -351,7 +351,7 @@ int usage(void)
   return 0;
 }
 
-#if defined(HAVE_GETIFADDRS)
+#if defined(HAVE_GETIFADDRS) && defined(HAVE_NET_IF_DL_H)
 #include <net/if_dl.h>
 #include <ifaddrs.h>
 #include <net/if_types.h>
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
 // fprintf(origerr, "localnet %s, ", inet_ntoa(*(struct in_addr *)&localnet));
 // fprintf(origerr, "netmask %s\n", inet_ntoa(*(struct in_addr *)&netmask));
         switchsignals(SIG_UNBLOCK);
-        pcap_loop(pk, -1, dopkt, ebuf);
+        pcap_loop(pk, -1, dopkt, NULL);
         fprintf(origerr, "pcap_loop error: %s\n", ebuf);
       }
       unlink(pidfile);
