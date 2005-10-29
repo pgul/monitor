@@ -34,6 +34,10 @@ typedef unsigned char classtype;
 #define SIGINFO SIGIO
 #endif
 
+#ifndef HAVE_SOCKLEN_T
+typedef int socklen_t;
+#endif
+
 #ifdef ETHER_ADDR_LEN
 struct mactype {
 	u_long *ip;
