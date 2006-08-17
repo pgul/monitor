@@ -28,7 +28,7 @@ testacl:	acl.c monitor.h
 	gcc $(COPT) @LDFLAGS@ -DDEBUG=1 -o testacl acl.c
 
 install:	all
-	install monitor $(prefix)/bin
+	install monitor $(prefix)/sbin
 	install monitor.conf @sysconfdir@
 
 clean:

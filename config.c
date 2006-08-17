@@ -155,9 +155,9 @@ static int parse_line(char *str)
   if (strncmp(p, "mymac=", 6)==0)
   { short int m[6];
     if (strncmp(p+6, "all-in", 6) == 0)
-      allmacs=1;
-    else if (strncmp(p+6, "all-out", 7) == 0)
       allmacs=2;
+    else if (strncmp(p+6, "all-out", 7) == 0)
+      allmacs=1;
     else
     {
       if (sscanf(p+6, "%04hx.%04hx.%04hx", m, m+1, m+2) != 3)
