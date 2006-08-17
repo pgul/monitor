@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include "monitor.h"
 
+#if NBITS>0
 static char *acl;
 static char bit[8]={1, 2, 4, 8, 16, 32, 64, 128};
 
@@ -73,11 +74,14 @@ static int reload_one_acl(char **acl, char *acl_name)
   if (oldacl) free(oldacl);
   return (*acl ? 0 : 1);
 }
+#endif
 
 int reload_acl(void)
 {
-  if (fromshmem) return 0;
-  return reload_one_acl(&acl, aclname);
+#if NBITS>0
+  if (!fromshmem) return reload_one_acl(&acl, aclname);
+#endif
+  return 0;
 }
 
 #if NBITS>0
