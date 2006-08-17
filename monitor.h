@@ -15,11 +15,13 @@
 #define MAXPREFIX       24
 #endif
 #ifndef NBITS
-#define NBITS           2
+#define NBITS           0
 #endif
 #define NCLASSES	(1<<NBITS)
 #if NBITS>8
 #define MAPSIZE         (1<<MAXPREFIX)*(NBITS/8)
+#elif NBITS==0
+#define MAPSIZE		0
 #else
 #define MAPSIZE         (1<<MAXPREFIX)/(8/NBITS)
 #endif
@@ -112,8 +114,13 @@ int  PerlStart(char *perlfile);
 void exitperl(void);
 void plstart(void);
 void plstop(void);
+#if NBITS>0
 void plwrite(char *user, char *src, char *dst, char *direct, int bytes);
 void plwritemac(char *mac, char *ua, char *direct, int bytes);
+#else
+void plwrite(char *user, int bytes_in, int bytes_out);
+void plwritemac(char *mac, int bytes_in, int bytes_out);
+#endif
 void perl_call(char *file, char *func, char **args);
 
 extern char perlfile[], perlstart[], perlwrite[];
@@ -121,8 +128,13 @@ extern char perlwritemac[], perlstop[];
 #else
 #define plstart()
 #define plstop()
+#if NBITS>0
 #define plwrite(user, src, dst, direct, bytes)
 #define plwritemac(mac, ua, direct, bytes)
+#else
+#define plwrite(user, bytes_in, bytes_out)
+#define plwritemac(mac, bytes_in, bytes_out)
+#endif
 #endif
 
 #ifdef DO_MYSQL

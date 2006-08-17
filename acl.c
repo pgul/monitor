@@ -80,6 +80,7 @@ int reload_acl(void)
   return reload_one_acl(&acl, aclname);
 }
 
+#if NBITS>0
 int find_mask(unsigned long remote)
 {
   if (fromshmem) return getclass(remote);
@@ -94,8 +95,9 @@ int find_mask(unsigned long remote)
     return 1; /* ua */
   return 0;
 }
+#endif
 
-#ifdef DEBUG
+#if defined(DEBUG) && (NBITS>0)
 time_t last_reload;
 char uaname[NCLASSES][32]={"world","ua"};
 int fromshmem=0;

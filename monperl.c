@@ -112,22 +112,37 @@ void plstop(void)
   }
 }
 
+#if NBITS>0
 void plwrite(char *user, char *src, char *dst, char *direct, int bytes)
+#else
+void plwrite(char *user, int bytes_in, int bytes_out)
+#endif
 {
+#if NBITS>0
   SV *svuser, *svsrc, *svdst, *svdirect, *svbytes;
+#else
+  SV *svuser, *svbytesin, *svbytesout;
+#endif
   STRLEN n_a;
 
   dSP;
   svuser   = perl_get_sv("user",      TRUE);
+#if NBITS>0
   svsrc    = perl_get_sv("src",       TRUE);
   svdst    = perl_get_sv("dst",       TRUE);
   svdirect = perl_get_sv("direction", TRUE);
   svbytes  = perl_get_sv("bytes",     TRUE);
-  sv_setpv(svuser,   user  );
   sv_setpv(svsrc,    src   );
   sv_setpv(svdst,    dst   );
   sv_setpv(svdirect, direct);
   sv_setiv(svbytes,  bytes );
+#else
+  svbytesin  = perl_get_sv("bytes_in",  TRUE);
+  svbytesout = perl_get_sv("bytes_out", TRUE);
+  sv_setiv(svbytesin,  bytes_in);
+  sv_setiv(svbytesout, bytes_out);
+#endif
+  sv_setpv(svuser,   user  );
   ENTER;
   SAVETMPS;
   PUSHMARK(SP);
@@ -144,20 +159,35 @@ void plwrite(char *user, char *src, char *dst, char *direct, int bytes)
   }
 }
 
+#if NBITS>0
 void plwritemac(char *mac, char *ua, char *direct, int bytes)
+#else
+void plwritemac(char *mac, int bytes_in, int bytes_out)
+#endif
 {
+#if NBITS>0
   SV *svmac, *svua, *svdirect, *svbytes;
+#else
+  SV *svmac, *svbytesin, *svbytesout;
+#endif
   STRLEN n_a;
 
   dSP;
   svmac    = perl_get_sv("mac",       TRUE);
+#if NBITS>0
   svua     = perl_get_sv("ua",        TRUE);
   svdirect = perl_get_sv("direction", TRUE);
   svbytes  = perl_get_sv("bytes",     TRUE);
-  sv_setpv(svmac,    mac   );
   sv_setpv(svua,     ua    );
   sv_setpv(svdirect, direct);
   sv_setiv(svbytes,  bytes );
+#else
+  svbytesin  = perl_get_sv("bytes_in",  TRUE);
+  svbytesout = perl_get_sv("bytes_out", TRUE);
+  sv_setiv(svbytesin,  bytes_in);
+  sv_setiv(svbytesout, bytes_out);
+#endif
+  sv_setpv(svmac, mac);
   ENTER;
   SAVETMPS;
   PUSHMARK(SP);

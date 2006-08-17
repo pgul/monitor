@@ -136,8 +136,7 @@ static void read_proto(char *p, u_short *proto)
 
 static int parse_line(char *str)
 {
-  char *p, *p1;
-  int i, j;
+  char *p;
   struct linktype *pl;
   struct attrtype *pa;
 
@@ -174,10 +173,6 @@ static int parse_line(char *str)
   { strncpy(snapfile, p+5, sizeof(snapfile)-1);
     return 0;
   }
-  if (strncmp(p, "acl=", 4)==0)
-  { strncpy(aclname, p+4, sizeof(aclname)-1);
-    return 0;
-  }
   if (strncmp(p, "pid=", 4)==0)
   { strncpy(pidfile, p+4, sizeof(pidfile)-1);
     return 0;
@@ -185,11 +180,6 @@ static int parse_line(char *str)
   if (strncmp(p, "write-int=", 10)==0)
   { write_interval = atoi(p+10);
     if (write_interval == 0) write_interval=WRITE_INTERVAL;
-    return 0;
-  }
-  if (strncmp(p, "reload-int=", 11)==0)
-  { reload_interval = atoi(p+11);
-    if (reload_interval == 0) reload_interval=RELOAD_INTERVAL;
     return 0;
   }
   if (strncmp(p, "maxmacs=", 8)==0)
@@ -200,6 +190,16 @@ static int parse_line(char *str)
   if (strncmp(p, "maxip=", 6)==0)
   { maxcoloip = atoi(p+6);
     if (maxcoloip == 0) maxcoloip=MAXCOLOIP;
+    return 0;
+  }
+#if (NBITS>0)
+  if (strncmp(p, "acl=", 4)==0)
+  { strncpy(aclname, p+4, sizeof(aclname)-1);
+    return 0;
+  }
+  if (strncmp(p, "reload-int=", 11)==0)
+  { reload_interval = atoi(p+11);
+    if (reload_interval == 0) reload_interval=RELOAD_INTERVAL;
     return 0;
   }
   if (strncmp(p, "mapkey=", 7)==0)
@@ -217,10 +217,11 @@ static int parse_line(char *str)
   }
   if (strncmp(p, "classes=", 8)==0)
   {
+    int i=0, j;
     p+=8;
-    i=0;
     while (p && *p)
     { 
+      char *p1;
       if (i==NCLASSES)
       { fprintf(stderr, "Too many classes!\n");
         break;
@@ -240,6 +241,18 @@ static int parse_line(char *str)
     }
     return 0;
   }
+#else
+  if (strncmp(p, "acl=", 4)==0 ||
+      strncmp(p, "reload-int=", 11)==0 ||
+      strncmp(p, "mapkey=", 7)==0 ||
+      strncmp(p, "fromshmem=", 10)==0 ||
+      strncmp(p, "classes=", 8)==0)
+  { char *p1 = strchr(p, '=');
+    *p1 = '\0';
+    printf("Parameter %s ignored when monitor compiled with nbits=0\n", p1);
+    return 0;
+  }
+#endif
 #ifdef DO_PERL
   if (strncmp(p, "perlwrite=", 10)==0)
   { char *p1 = p+10;

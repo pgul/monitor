@@ -8,6 +8,7 @@
 static classtype *map;
 static int shmid=-1;
 
+#if NBITS>0
 classtype getclass(unsigned long addr)
 {
 #if NBITS>=8
@@ -22,6 +23,7 @@ classtype getclass(unsigned long addr)
 	return (map[offs] & mask) >> bits;;
 #endif
 }
+#endif
 
 void freeshmem(void)
 {
@@ -51,4 +53,3 @@ int init_map(void)
 	if (map==NULL) return 1;
 	return 0;
 }
-

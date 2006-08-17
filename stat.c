@@ -79,13 +79,20 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
     else snprintf(protos[proto], sizeof(protos[0]), "proto %u", proto);
   }
   if (dst_mac)
-    fprintf(fsnap, "%s %s->%s %s (%s.%s2%s.%s) %u bytes ("
+    fprintf(fsnap, "%s %s->%s %s (%s."
+#if NBITS>0
+                   "%s2%s."
+#endif
+                   "%s) %u bytes ("
 #ifndef NO_TRUNK
       "vlan %d, "
 #endif
       "mac %02x%02x.%02x%02x.%02x%02x) %s: %d/%d/0x%04x\n",
       ((in^pa->reverse) ? "<-" : "->"), str_src_ip, str_dst_ip, protos[proto],
-      pa->link ? pa->link->name : "unknown", uaname[src_ua], uaname[dst_ua],
+      pa->link ? pa->link->name : "unknown", 
+#if NBITS>0
+      uaname[src_ua], uaname[dst_ua],
+#endif
       ((in^pa->reverse) ? "in" : "out"), len,
 #ifndef NO_TRUNK
       vlan,
@@ -98,12 +105,18 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #ifdef HAVE_PKTTYPE
                   "%s "
 #endif
-                  "%s->%s %s (%s.%s2%s.%s) %u bytes %s: %d/%d/0x%04x\n",
+                  "%s->%s %s (%s."
+#if NBITS>0
+                  "%s2%s."
+#endif
+                  "%s) %u bytes %s: %d/%d/0x%04x\n",
 #ifdef HAVE_PKTTYPE
       ((in^pa->reverse) ? "<-" : "->"),
 #endif
-      str_src_ip, str_dst_ip, protos[proto],
-      pa->link->name, uaname[src_ua], uaname[dst_ua],
+      str_src_ip, str_dst_ip, protos[proto], pa->link->name, 
+#if NBITS>0
+      uaname[src_ua], uaname[dst_ua],
+#endif
       ((in^pa->reverse) ? "in" : "out"), len,
       (hit>0) ? "hit" : "miss", (hit>0) ? hit : -hit, nhash, hash);
   fflush(fsnap);
@@ -354,8 +367,12 @@ left:
         else
           break;
       }
+#if NBITS>0
       src_ua=uaindex[find_mask(src_ip)];
       dst_ua=uaindex[find_mask(dst_ip)];
+#else
+      src_ua=dst_ua=0;
+#endif
       if (pcache)
       { cache[hash].src_ua=src_ua;
         cache[hash].dst_ua=dst_ua;
@@ -399,6 +416,7 @@ left:
              "user_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,"\
              "UNIQUE (user)"						\
         ")"
+#if NBITS>0
 #define create_table					\
        "CREATE TABLE IF NOT EXISTS %s ("		\
              "time TIMESTAMP NOT NULL,"			\
@@ -420,6 +438,26 @@ left:
              "INDEX (mac),"				\
              "INDEX (time)"				\
         ")"
+#else
+#define create_table					\
+       "CREATE TABLE IF NOT EXISTS %s ("		\
+             "time TIMESTAMP NOT NULL,"			\
+             "user_id INT UNSIGNED NOT NULL,"		\
+             "bytes_in INT UNSIGNED NOT NULL,"		\
+             "bytes_out INT UNSIGNED NOT NULL,"		\
+             "INDEX (user_id),"				\
+             "INDEX (time)"				\
+        ")"
+#define create_mtable					\
+        "CREATE TABLE IF NOT EXISTS %s ("		\
+             "time TIMESTAMP NOT NULL,"			\
+             "mac CHAR(16) NOT NULL,"			\
+             "bytes_in INT UNSIGNED NOT NULL,"		\
+             "bytes_out INT UNSIGNED NOT NULL,"		\
+             "INDEX (mac),"				\
+             "INDEX (time)"				\
+        ")"
+#endif
 #define create_itable					\
         "CREATE TABLE IF NOT EXISTS %s ("		\
              "mac CHAR(16) NOT NULL,"			\
@@ -537,7 +575,7 @@ void mysql_start(void)
 
 void write_stat(void)
 {
-  int i, j, k;
+  int k;
   struct linktype *pl;
   FILE *fout;
 #ifdef DO_MYSQL
@@ -563,13 +601,13 @@ void write_stat(void)
   strftime(mtable, sizeof(mtable), mysql_mtable,  tm_now);
   strftime(stamp,  sizeof(stamp), "%Y%m%d%H%M%S", tm_now);
   p=enums;
-  for (i=0; i<NCLASSES && i<256; i++)
+  for (k=0; k<NCLASSES && k<256; k++)
   { if (p>enums)
     { strcpy(p, ", ");
       p+=2;
     }
     *p++='\'';
-    strcpy(p, uaname[i]);
+    strcpy(p, uaname[k]);
     p+=strlen(p);
     *p++='\'';
   }
@@ -577,13 +615,21 @@ void write_stat(void)
 #endif
   fprintf(fout, "----- %s", ctime(&last_write));
   for (pl=linkhead; pl; pl=pl->next)
-  { for (i=0; i<2; i++)
+  { 
+#if NBITS>0
+    int i, j;
+    for (i=0; i<2; i++)
       for (j=0; j<NCLASSES; j++)
         for (k=0; k<NCLASSES; k++)
           if (pl->bytes[i][j][k])
           { 
             plwrite(pl->name, uaname[j], uaname[k], (i ? "in" : "out"),
                     pl->bytes[i][j][k]);
+#else
+          if (pl->bytes[0][0][0] || pl->bytes[1][0][0])
+          {
+            plwrite(pl->name, pl->bytes[0][0][0], pl->bytes[1][0][0]);
+#endif
 #ifdef DO_MYSQL
             if (!mysql_connected)
             {
@@ -609,7 +655,11 @@ void write_stat(void)
             }
             if (conn && !table_created)
             {
-              snprintf(query, sizeof(query)-1, create_table, table, enums, enums);
+#if NBITS>0
+              snprintf(query, sizeof(query)-1, create_table, table, enums,enums);
+#else
+              snprintf(query, sizeof(query)-1, create_table, table);
+#endif
               if (mysql_query(conn, query) != 0)
               { mysql_err(conn, "mysql_query() failed");
                 do_disconnect(conn);
@@ -691,10 +741,18 @@ void write_stat(void)
               }
             }
             if (conn)
-            { sprintf(query,
+            { 
+#if NBITS>0
+              sprintf(query,
                  "INSERT %s VALUES('%s', '%lu', '%s', '%s', '%s', '%lu')",
                  table, stamp, pl->user_id, uaname[j], uaname[k],
                  (i ? "in" : "out"), pl->bytes[i][j][k]);
+#else
+              sprintf(query,
+                 "INSERT %s VALUES('%s', '%lu', '%lu', '%lu')",
+                 table, stamp, pl->user_id,
+                 pl->bytes[0][0][0], pl->bytes[1][0][0]);
+#endif
               if (mysql_query(conn, query) != 0)
               { mysql_err(conn, "mysql_query() failed");
                 do_disconnect(conn);
@@ -702,25 +760,41 @@ void write_stat(void)
               }
             }
 #endif
+#if NBITS>0
             fprintf(fout, "%s.%s2%s.%s: %lu bytes\n",
                       pl->name, uaname[j], uaname[k], (i ? "in" : "out"),
                       pl->bytes[i][j][k]);
             pl->bytes[i][j][k]=0;
+#else
+            fprintf(fout, "%s: %lu bytes in, %lu bytes out\n",
+                      pl->name, pl->bytes[0][0][0], pl->bytes[1][0][0]);
+            pl->bytes[0][0][0]=pl->bytes[1][0][0]=0;
+#endif
           }
     if (pl->nmacs)
     { for (k=0; k<maxmacs; k++)
         if (pl->mactable[k])
-        { for (i=0; i<2; i++)
+        { 
+#if NBITS>0
+          int i, j;
+          for (i=0; i<2; i++)
             for (j=0; j<NCLASSES; j++)
               if (pl->mactable[k]->bytes[i][j])
+#else
+              if (pl->mactable[k]->bytes[0][0] || pl->mactable[k]->bytes[1][0])
+#endif
               { 
                 char mac[15];
                 sprintf(mac, "%02x%02x.%02x%02x.%02x%02x",
                         pl->mactable[k]->mac[0], pl->mactable[k]->mac[1],
                         pl->mactable[k]->mac[2], pl->mactable[k]->mac[3],
                         pl->mactable[k]->mac[4], pl->mactable[k]->mac[5]);
+#if NBITS>0
                 plwritemac(mac, uaname[j], (i ? "in" : "out"),
                            pl->mactable[k]->bytes[i][j]);
+#else
+                plwritemac(mac, pl->mactable[k]->bytes[0][0], pl->mactable[k]->bytes[1][0]);
+#endif
 #ifdef DO_MYSQL
                 if (!mysql_connected)
                 {
@@ -736,7 +810,11 @@ void write_stat(void)
                 }
                 if (conn && !mtable_created)
                 {
-                  snprintf(query, sizeof(query)-1, create_mtable, mtable,enums);
+#if NBITS>0
+                  snprintf(query, sizeof(query)-1, create_mtable, mtable, enums);
+#else
+                  snprintf(query, sizeof(query)-1, create_mtable, mtable);
+#endif
                   if (mysql_query(conn, query) != 0)
                   { mysql_err(conn, "mysql_query() failed");
                     do_disconnect(conn);
@@ -745,10 +823,18 @@ void write_stat(void)
                   mtable_created=1;
                 }
                 if (conn)
-                { sprintf(query,
+                { 
+#if NBITS>0
+                  sprintf(query,
                      "INSERT %s VALUES('%s', '%s', '%s', '%s', '%lu')",
                      mtable, stamp, mac, uaname[j],
                      (i ? "in" : "out"), pl->mactable[k]->bytes[i][j]);
+#else
+                  sprintf(query,
+                     "INSERT %s VALUES('%s', '%s', '%lu', '%lu')",
+                     mtable, stamp, mac,
+                     pl->mactable[k]->bytes[0][0], pl->mactable[k]->bytes[1][0]);
+#endif
                   if (mysql_query(conn, query) != 0)
                   { mysql_err(conn, "mysql_query() failed");
                     do_disconnect(conn);
@@ -756,10 +842,17 @@ void write_stat(void)
                   }
                 }
 #endif
+#if NBITS>0
                 fprintf(fout, "%s.%s.%s: %lu bytes",
                         mac, uaname[j], (i ? "in" : "out"),
                         pl->mactable[k]->bytes[i][j]);
                 pl->mactable[k]->bytes[i][j]=0;
+#else
+                fprintf(fout, "%s: %lu bytes in, %lu bytes out", mac,
+                        pl->mactable[k]->bytes[0][0],
+                        pl->mactable[k]->bytes[1][0]);
+                pl->mactable[k]->bytes[0][0]= pl->mactable[k]->bytes[1][0]=0;
+#endif
                 if (pl->mactable[k]->nip)
                 {
                   int nip=0;
