@@ -73,11 +73,12 @@ static void sub_err(char *sub)
   }
   else
     s = strdup("(empty error message)");
-  if (strchr(s, '\n') == NULL)
+  if ((p = strchr(s, '\n')) == NULL || p[1] == '\0')
+  { if (p) *p = '\0';
     error("Perl %s error: %s", sub, s);
+  }
   else
   {
-    p = s;
     error("Perl %s error below:", sub);
     while ( *p && (*p != '\n' || *(p+1)) )
     { char *r = strchr(p, '\n');
