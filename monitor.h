@@ -32,10 +32,6 @@ typedef unsigned short classtype;
 typedef unsigned char classtype;
 #endif
 
-#ifndef SIGINFO
-#define SIGINFO SIGIO
-#endif
-
 #ifndef HAVE_SOCKLEN_T
 typedef int socklen_t;
 #endif
@@ -80,7 +76,7 @@ extern u_char my_mac[ETHER_ADDR_LEN];
 
 extern time_t last_write, last_reload;
 extern struct linktype *linkhead;
-extern int  preproc;
+extern int  preproc, allmacs;
 extern char iface[];
 extern char logname[], snapfile[], aclname[], pidfile[];
 extern int  write_interval, reload_interval;

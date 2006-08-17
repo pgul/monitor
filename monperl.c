@@ -26,14 +26,82 @@
 #endif
 
 static PerlInterpreter *perl = NULL;
+static int plstart_ok, plstop_ok, plwrite_ok, plwritemac_ok;
 
 void boot_DynaLoader(pTHX_ CV *cv);
+
+static void perl_warn_str(char *str)
+{ 
+  while (str && *str)
+  { char *cp = strchr (str, '\n');
+    char c  = 0;
+    if (cp)
+    { c = *cp;
+      *cp = 0;
+    }
+    error("Perl error: %s", str);
+    if (!cp)
+      break;
+    *cp = c;
+    str = cp + 1;
+  }
+}
+
+static void perl_warn_sv (SV *sv)
+{ STRLEN n_a;
+  char *str = (char *)SvPV(sv, n_a);
+  perl_warn_str(str);
+}
+
+static XS(perl_warn)
+{
+  dXSARGS;
+  if (items == 1) perl_warn_sv(ST(0));
+  XSRETURN_EMPTY;
+}
+
+/* handle multi-line perl eval error message */
+static void sub_err(char *sub)
+{
+  STRLEN len;
+  char *s, *p;
+  p = SvPV(ERRSV, len);
+  if (len)
+  { s = malloc(len+1);
+    strncpy(s, p, len);
+    s[len] = '\0';
+  }
+  else
+    s = strdup("(empty error message)");
+  if (strchr(s, '\n') == NULL)
+    error("Perl %s error: %s", sub, s);
+  else
+  {
+    p = s;
+    error("Perl %s error below:", sub);
+    while ( *p && (*p != '\n' || *(p+1)) )
+    { char *r = strchr(p, '\n');
+      if (r)
+      { *r = 0;
+        error("  %s", p);
+        p = r + 1;
+      }
+      else
+      {
+        error("  %s", p);
+        break;
+      }
+    }
+  }
+  free(s);
+}
 
 static void xs_init(pTHX)
 {
   static char *file = __FILE__;
   dXSUB_SYS;
   newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
+  newXS("monitor_warn", perl_warn, file);
 }
 
 void exitperl(void)
@@ -49,16 +117,19 @@ void exitperl(void)
 int PerlStart(char *perlfile)
 {
   int rc;
-  char *perlargs[]={"", "", NULL};
+  static char *perlargs[]={"", NULL, NULL, NULL};
+  char cmd[256];
+  SV *sv;
 
-  perlargs[1] = perlfile;
+  perlargs[1] = "-e";
+  perlargs[2] = "0";
   if (access(perlfile, R_OK))
   { printf("Can't read %s: %s", perlfile, strerror(errno));
     return 1;
   }
   perl = perl_alloc();
   perl_construct(perl);
-  rc=perl_parse(perl, xs_init, 2, perlargs, NULL);
+  rc=perl_parse(perl, xs_init, 3, perlargs, NULL);
   if (rc)
   { printf("Can't parse %s", perlfile);
     perl_destruct(perl);
@@ -66,15 +137,40 @@ int PerlStart(char *perlfile)
     perl=NULL;
     return 1;
   }
+  /* Set warn and die hooks */
+  if (PL_warnhook) SvREFCNT_dec (PL_warnhook);
+  if (PL_diehook ) SvREFCNT_dec (PL_diehook );
+  PL_warnhook = newRV_inc ((SV*) perl_get_cv ("monitor_warn", TRUE));
+  PL_diehook  = newRV_inc ((SV*) perl_get_cv ("monitor_warn", TRUE));
+  /* run main program body */
+  snprintf(cmd, sizeof(cmd), "do '%s'; $@ ? $@ : '';", perlfile);
+  sv = perl_eval_pv (cmd, TRUE);
+  if (!SvPOK(sv)) {
+    error("Syntax error in internal perl expression: %s", cmd);
+    rc = 1;
+  } else if (SvTRUE (sv)) {
+    perl_warn_sv (sv);
+    rc = 1;
+  }
+  if (rc) {
+    perl_destruct(perl);
+    perl_free(perl);
+    perl = NULL;
+    return 0;
+  }
+  plstart_ok = plstop_ok = plwrite_ok = plwritemac_ok = 0;
+  if (perl_get_cv("startwrite", FALSE)) plstart_ok    = 1;
+  if (perl_get_cv("stopwrite",  FALSE)) plstop_ok     = 1;
+  if (perl_get_cv("write",      FALSE)) plwrite_ok    = 1;
+  if (perl_get_cv("writemac",   FALSE)) plwritemac_ok = 1;
   atexit(exitperl);
   return 0;
 }
 
 void plstart(void)
 {
-  STRLEN n_a;
-
   dSP;
+  if (!plstart_ok) return;
   ENTER;
   SAVETMPS;
   PUSHMARK(SP);
@@ -85,17 +181,13 @@ void plstart(void)
   FREETMPS;
   LEAVE;
   if (SvTRUE(ERRSV))
-  {
-    printf("Perl eval error: %s\n", SvPV(ERRSV, n_a));
-    exit(4);
-  }
+    sub_err("startwrite");
 }
 
 void plstop(void)
 {
-  STRLEN n_a;
-
   dSP;
+  if (!plstop_ok) return;
   ENTER;
   SAVETMPS;
   PUSHMARK(SP);
@@ -106,10 +198,7 @@ void plstop(void)
   FREETMPS;
   LEAVE;
   if (SvTRUE(ERRSV))
-  {
-    printf("Perl eval error: %s\n", SvPV(ERRSV, n_a));
-    exit(4);
-  }
+    sub_err("stopwrite");
 }
 
 #if NBITS>0
@@ -123,9 +212,9 @@ void plwrite(char *user, int bytes_in, int bytes_out)
 #else
   SV *svuser, *svbytesin, *svbytesout;
 #endif
-  STRLEN n_a;
 
   dSP;
+  if (!plwrite_ok) return;
   svuser   = perl_get_sv("user",      TRUE);
 #if NBITS>0
   svsrc    = perl_get_sv("src",       TRUE);
@@ -153,10 +242,7 @@ void plwrite(char *user, int bytes_in, int bytes_out)
   FREETMPS;
   LEAVE;
   if (SvTRUE(ERRSV))
-  {
-    printf("Perl eval error: %s\n", SvPV(ERRSV, n_a));
-    exit(4);
-  }
+    sub_err("write");
 }
 
 #if NBITS>0
@@ -173,6 +259,7 @@ void plwritemac(char *mac, int bytes_in, int bytes_out)
   STRLEN n_a;
 
   dSP;
+  if (!plwritemac_ok) return;
   svmac    = perl_get_sv("mac",       TRUE);
 #if NBITS>0
   svua     = perl_get_sv("ua",        TRUE);

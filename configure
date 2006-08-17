@@ -14,7 +14,7 @@ ac_default_prefix=/usr/local
 ac_help="$ac_help
   --with-vlans            802.1q vlans support (default no)"
 ac_help="$ac_help
-  --with-ports            Analize tcp/udp ports (default yes)"
+  --with-ports            Analyze tcp/udp ports (default yes)"
 ac_help="$ac_help
   --with-perl             embedded perl support (default no)"
 ac_help="$ac_help

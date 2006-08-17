@@ -126,7 +126,7 @@ struct sll_header {
 int  preproc;
 time_t last_write, last_reload;
 long snap_traf;
-FILE *fsnap, *origerr;
+FILE *fsnap;
 pcap_t *pk;
 char *saved_argv[20];
 char *confname;
@@ -142,8 +142,8 @@ static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 
 void hup(int signo)
 {
-  /* fprintf(origerr, "Received signal %d\n", signo); */
-  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR2)
+  /* warning("Received signal %d", signo); */
+  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR2 || signo == SIGALRM)
     write_stat();
   if (signo==SIGTERM)
   { unlink(pidfile);
@@ -151,21 +151,21 @@ void hup(int signo)
   }
   if (signo==SIGUSR1)
     reload_acl();
-  if (signo==SIGUSR2)
+  if (signo==SIGHUP)
     if (config(confname))
-    { fprintf(origerr, "Config error!\n");
+    { error("Config error!\n");
       exit(1);
     }
-  if (signo==SIGINFO)
-  { /* snap 10M of traffic */
+  if (signo==SIGUSR2)
+  { /* snap 100M of traffic */
     int wassnap=1;
     if (fsnap) fclose(fsnap);
     else wassnap=0;
-    snap_traf=10*1024*1024; 
+    snap_traf=100*1024*1024; 
     fsnap=fopen(snapfile, "a");
     if (fsnap==NULL)
     { snap_traf=0;
-      fprintf(origerr, "Can't open %s: %s!\n", snapfile, strerror(errno));
+      error("Can't open %s: %s!\n", snapfile, strerror(errno));
     }
     else if (!wassnap)
     { time_t curtime=time(NULL);
@@ -193,7 +193,7 @@ static void switchsignals(int how)
   sigaddset(&sigset, SIGINT);
   sigaddset(&sigset, SIGUSR1);
   sigaddset(&sigset, SIGUSR2);
-  sigaddset(&sigset, SIGINFO);
+  sigaddset(&sigset, SIGALRM);
   sigprocmask(how, &sigset, NULL);
 }
 
@@ -222,7 +222,6 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     in = 1;
   // PACKET_BROADCAST, PACKET_MULTICAST, PACKET_OTHERHOST - use unknown
 #endif
-  // fprintf(origerr, "#"); fflush(origerr);
   if (linktype == DLT_EN10MB)
   {
     if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
@@ -458,23 +457,8 @@ int main(int argc, char *argv[])
   if (argc>optind)
     confname=argv[optind];
 
-  fflush(stderr);
-  i = dup(fileno(stderr));
-  if (i!=-1)
-  { if ((origerr=fdopen(i, "w")) == NULL)
-      close(i);
-  } else
-    origerr=NULL;
-  if (origerr)
-  { f = fopen("/dev/null", "w");
-    if (f)
-    { dup2(fileno(f), fileno(stderr));
-      fclose(f);
-    }
-  } else
-    origerr = stderr;
   if (config(confname))
-  { fprintf(origerr, "Config error\n");
+  { fprintf(stderr, "Config error\n");
     return 1;
   }
   if (preproc)
@@ -506,9 +490,9 @@ int main(int argc, char *argv[])
     signal(SIGUSR2, hup);
     signal(SIGINT, hup);
     signal(SIGTERM, hup);
-    signal(SIGINFO, hup);
+    signal(SIGALRM, hup);
     if (reload_acl())
-      fprintf(origerr, "reload acl error!\n");
+      fprintf(stderr, "reload acl error!\n");
     else
     { f=fopen(pidfile, "w");
       if (f)
@@ -528,7 +512,7 @@ int main(int argc, char *argv[])
         { sprintf(unspec, "unspec (%d)", linktype);
           sdlt = unspec;
         }
-        fprintf(origerr, "Unsupported link type %s!\n", sdlt);
+        fprintf(stderr, "Unsupported link type %s!\n", sdlt);
       }
       else
       {
@@ -539,31 +523,31 @@ int main(int argc, char *argv[])
 #else
         if (linktype == DLT_EN10MB
 #endif
-            && memcmp(my_mac, nullmac, ETHER_ADDR_LEN)==0)
-	{
-	  get_mac(iface, my_mac);
-	  warning("mac-addr for %s is %02x:%02x:%02x:%02x:%02x:%02x",
-		  iface, my_mac[0], my_mac[1], my_mac[2], my_mac[3],
-		  my_mac[4], my_mac[5]);
-	}
+            && !allmacs && memcmp(my_mac, nullmac, ETHER_ADDR_LEN)==0)
+        {
+          get_mac(iface, my_mac);
+          warning("mac-addr for %s is %02x:%02x:%02x:%02x:%02x:%02x",
+          iface, my_mac[0], my_mac[1], my_mac[2], my_mac[3],
+          my_mac[4], my_mac[5]);
+        }
         if (pcap_lookupnet(iface, &localnet, &netmask, ebuf))
-        { fprintf(origerr, "pcap_lookupnet error: %s\n", ebuf);
+        { fprintf(stderr, "pcap_lookupnet error: %s\n", ebuf);
           netmask = localnet = 0;
         }
         if (pcap_compile(pk, &fcode, NULL, 1, netmask) == 0)
           pcap_setfilter(pk, &fcode);
-// fprintf(origerr, "localnet %s, ", inet_ntoa(*(struct in_addr *)&localnet));
-// fprintf(origerr, "netmask %s\n", inet_ntoa(*(struct in_addr *)&netmask));
+// fprintf(stderr, "localnet %s, ", inet_ntoa(*(struct in_addr *)&localnet));
+// fprintf(stderr, "netmask %s\n", inet_ntoa(*(struct in_addr *)&netmask));
         switchsignals(SIG_UNBLOCK);
         pcap_loop(pk, -1, dopkt, NULL);
-        fprintf(origerr, "pcap_loop error: %s\n", ebuf);
+        fprintf(stderr, "pcap_loop error: %s\n", ebuf);
       }
       unlink(pidfile);
     }
     pcap_close(pk);
   }
   else
-  { fprintf(origerr, "pcap_open_live fails: %s\n", ebuf);
+  { fprintf(stderr, "pcap_open_live fails: %s\n", ebuf);
   }
   return 0;
 }
@@ -593,5 +577,4 @@ void error(char *format, ...)
   fprintf(stderr, "\n");
   va_end(ap);
 }
-
 

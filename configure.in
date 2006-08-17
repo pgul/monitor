@@ -115,7 +115,7 @@ esac
 
 dnl Check for ports
 AC_ARG_WITH(ports,
-            [  --with-ports            Analize tcp/udp ports (default yes)])
+            [  --with-ports            Analyze tcp/udp ports (default yes)])
 case x$withval in
   xno)
     ;;

@@ -29,7 +29,7 @@ char iface[32]=IFACE;
 char logname[256]=LOGNAME, snapfile[256]=SNAPFILE, aclname[256]=ACLNAME;
 char pidfile[256]=PIDFILE;
 int write_interval=WRITE_INTERVAL, reload_interval=RELOAD_INTERVAL;
-int maxmacs=MAXMACS, maxcoloip=MAXCOLOIP;
+int maxmacs=MAXMACS, maxcoloip=MAXCOLOIP, allmacs;
 long mapkey;
 int fromshmem;
 char uaname[NCLASSES][32];
@@ -153,12 +153,40 @@ static int parse_line(char *str)
     printf("%s\n", str);
   p=str;
   if (strncmp(p, "mymac=", 6)==0)
-  { short int m[3];
-    sscanf(p+6, "%04hx.%04hx.%04hx", m, m+1, m+2);
-    m[0] = htons(m[0]);
-    m[1] = htons(m[1]);
-    m[2] = htons(m[2]);
-    memcpy(my_mac, m, sizeof(my_mac));
+  { short int m[6];
+    if (strncmp(p+6, "all-in", 6) == 0)
+      allmacs=1;
+    else if (strncmp(p+6, "all-out", 7) == 0)
+      allmacs=2;
+    else
+    {
+      if (sscanf(p+6, "%04hx.%04hx.%04hx", m, m+1, m+2) != 3)
+      { if (sscanf(p+6, "%02hx:%02hx:%02hx:%02hx:%02hx:%02hx",
+            m, m+1, m+2, m+3, m+4, m+5) != 6)
+          printf("Bad mac address %s, mymac ignored\n", p+6);
+        else
+        { my_mac[0] = (u_char)m[0];
+          my_mac[1] = (u_char)m[1];
+          my_mac[2] = (u_char)m[2];
+          my_mac[3] = (u_char)m[3];
+          my_mac[4] = (u_char)m[4];
+          my_mac[5] = (u_char)m[5];
+        }
+      }
+      else
+      {
+        m[0] = htons(m[0]);
+        m[1] = htons(m[1]);
+        m[2] = htons(m[2]);
+        /* memcpy(my_mac, m, sizeof(my_mac)); */
+        my_mac[0] = (u_char)(m[0] >> 8);
+        my_mac[1] = (u_char)(m[0] & 0xFF);
+        my_mac[2] = (u_char)(m[1] >> 8);
+        my_mac[3] = (u_char)(m[1] & 0xFF);
+        my_mac[4] = (u_char)(m[2] >> 8);
+        my_mac[5] = (u_char)(m[2] & 0xFF);
+      }
+    }
     return 0;
   }
   if (strncmp(p, "iface=", 6)==0)

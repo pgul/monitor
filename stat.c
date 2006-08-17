@@ -23,7 +23,7 @@
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
 static u_char broadcast[ETHER_ADDR_LEN]={0xff,0xff,0xff,0xff,0xff,0xff};
 extern long snap_traf;
-extern FILE *fsnap, *origerr;
+extern FILE *fsnap;
 
 static struct cachetype {
 	u_long src_ip, dst_ip;
@@ -192,10 +192,17 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
   u_short lport=0, rport=0;
 #endif
 
+  if (allmacs)
+  { if (allmacs==1)
+      goto incoming;
+    else
+      goto outgoing;
+  }
   if (dst_mac)
   {
     if (memcmp(src_mac, my_mac, ETHER_ADDR_LEN)==0)
     { /* outgoing packet */
+outgoing:
       in = 0;
       remote=dst_ip;
       local=src_ip;
@@ -208,6 +215,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
     else if (memcmp(dst_mac, my_mac, ETHER_ADDR_LEN)==0 ||
              memcmp(dst_mac, broadcast, ETHER_ADDR_LEN)==0)
     { /* incoming packet */
+incoming:
       in=1;
       remote=src_ip;
       local=dst_ip;
@@ -467,10 +475,9 @@ left:
 
 static void mysql_err(MYSQL *conn, char *message)
 {
-	fprintf(origerr, "%s\n", message);
+	error("%s", message);
 	if (conn)
-		fprintf(origerr, "Error %u (%s)\n",
-		        mysql_errno(conn), mysql_error(conn));
+		error("Error %u (%s)", mysql_errno(conn), mysql_error(conn));
 }
 
 static MYSQL *do_connect(char *host_name, char *user_name, char *password,
