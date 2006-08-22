@@ -111,11 +111,11 @@ void exitperl(void);
 void plstart(void);
 void plstop(void);
 #if NBITS>0
-void plwrite(char *user, char *src, char *dst, char *direct, int bytes);
-void plwritemac(char *mac, char *ua, char *direct, int bytes);
+void plwrite(char *user, char *src, char *dst, char *direct, unsigned long bytes);
+void plwritemac(char *mac, char *ua, char *direct, unsigned long bytes);
 #else
-void plwrite(char *user, int bytes_in, int bytes_out);
-void plwritemac(char *mac, int bytes_in, int bytes_out);
+void plwrite(char *user, unsigned long bytes_in, unsigned long bytes_out);
+void plwritemac(char *mac, unsigned long bytes_in, unsigned long bytes_out);
 #endif
 void perl_call(char *file, char *func, char **args);
 
