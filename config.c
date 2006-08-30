@@ -621,6 +621,7 @@ int config(char *name)
     uaindex[i]=i;
     snprintf(uaname[i], sizeof(uaname[i])-1, "class%u_", i);
   }
+  allmacs = 0;
   parse_file(f);
   fclose(f);
   if (fromshmem && !preproc)
