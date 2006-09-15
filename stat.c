@@ -55,10 +55,11 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
 #endif
      int len, int hit, int hash)
 {
-  u_char *remote_mac=in ? src_mac : dst_mac;
+  u_char *remote_mac;
   char str_src_ip[20], str_dst_ip[20];
   static char protos[256][16];
 
+  remote_mac=in ? src_mac : dst_mac;
 #ifdef WITH_PORTS
   if (sport)
   { sprintf(str_src_ip, "%u.%u.%u.%u:%u", ((char *)&src_ip)[0],

@@ -296,7 +296,8 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     src_port = dst_port = 0;
 #endif
   add_stat(src_mac, dst_mac,
-           *(u_long *)&(ip_hdr->ip_src), *(u_long *)&(ip_hdr->ip_dst),
+           *(u_long *)(void *)&(ip_hdr->ip_src),
+           *(u_long *)(void *)&(ip_hdr->ip_dst),
            hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
 #ifndef NO_TRUNK
            vlan,
