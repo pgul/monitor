@@ -22,7 +22,7 @@
 
 u_char my_mac[ETHER_ADDR_LEN]={MYMAC};
 static u_char broadcast[ETHER_ADDR_LEN]={0xff,0xff,0xff,0xff,0xff,0xff};
-extern long snap_traf;
+extern time_t snap_start;
 extern FILE *fsnap;
 
 static struct cachetype {
@@ -121,10 +121,9 @@ static void putsnap(struct attrtype *pa, int src_ua, int dst_ua, int in,
       ((in^pa->reverse) ? "in" : "out"), len,
       (hit>0) ? "hit" : "miss", (hit>0) ? hit : -hit, nhash, hash);
   fflush(fsnap);
-  if ((snap_traf-=len) <= 0)
+  if (snap_start + SNAP_TIME < time(NULL))
   { fclose(fsnap);
     fsnap = NULL;
-    snap_traf=0;
   }
 }
 

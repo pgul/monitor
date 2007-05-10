@@ -124,8 +124,7 @@ struct sll_header {
 #endif
 
 int  preproc;
-time_t last_write, last_reload;
-long snap_traf;
+time_t last_write, last_reload, snap_start;
 FILE *fsnap;
 pcap_t *pk;
 char *saved_argv[20];
@@ -143,7 +142,7 @@ static unsigned char nullmac[ETHER_ADDR_LEN] = {0, 0, 0, 0, 0, 0};
 void hup(int signo)
 {
   /* warning("Received signal %d", signo); */
-  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo==SIGUSR2 || signo == SIGALRM)
+  if (signo==SIGHUP || signo==SIGTERM || signo==SIGINT || signo == SIGALRM)
     write_stat();
   if (signo==SIGTERM)
   { unlink(pidfile);
@@ -153,23 +152,29 @@ void hup(int signo)
     reload_acl();
   if (signo==SIGHUP)
     if (config(confname))
-    { error("Config error!\n");
+    { error("Config error!");
       exit(1);
     }
   if (signo==SIGUSR2)
-  { /* snap 100M of traffic */
-    int wassnap=1;
-    if (fsnap) fclose(fsnap);
-    else wassnap=0;
-    snap_traf=100*1024*1024; 
-    fsnap=fopen(snapfile, "a");
-    if (fsnap==NULL)
-    { snap_traf=0;
-      error("Can't open %s: %s!\n", snapfile, strerror(errno));
-    }
-    else if (!wassnap)
-    { time_t curtime=time(NULL);
-      fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
+  { /* snap traffic during SNAP_TIME */
+    time_t curtime;
+
+    curtime=time(NULL);
+    if (fsnap)
+    { fclose(fsnap);
+      fsnap=fopen(snapfile, "a");
+      if (fsnap==NULL)
+        warning("Cannot open %s: %s", snapfile, strerror(errno));
+      else
+        snap_start += SNAP_TIME;
+    } else
+    { fsnap=fopen(snapfile, "a");
+      if (fsnap==NULL)
+        warning("Cannot open %s: %s", snapfile, strerror(errno));
+      else
+      { fprintf(fsnap, "\n\n----- %s\n", ctime(&curtime));
+        snap_start = curtime;
+      }
     }
   }
   if (signo==SIGINT)

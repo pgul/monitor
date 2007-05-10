@@ -8,6 +8,7 @@
 #define PIDFILE		"/var/run/monitor.pid"
 #define WRITE_INTERVAL	(60*60)
 #define RELOAD_INTERVAL	(60*10)
+#define SNAP_TIME	60
 #define MAXMACS		(16*256) /* size of hash-table */
 #define MAXCOLOIP	16
 #define CACHESIZE	65536
