@@ -203,6 +203,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 {
   struct ether_header *eth_hdr;
   struct ip *ip_hdr;
+  void *pkt_data;
   u_char *src_mac, *dst_mac;
 #ifndef NO_TRUNK
   struct ether_vlan_header *vlan_hdr;
@@ -226,48 +227,61 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
 #endif
   if (linktype == DLT_EN10MB)
   {
-    if (hdr->len < sizeof(*eth_hdr)+sizeof(*ip_hdr))
+    if (hdr->len < sizeof(*eth_hdr))
       goto dopkt_end;
     eth_hdr = (struct ether_header *)data;
 #ifndef NO_TRUNK
     vlan=0;
     if (ntohs(eth_hdr->ether_type)==ETHERTYPE_VLAN)
     {
-      vlan_hdr=(struct ether_vlan_header *)data;
-      vlan=ntohs(vlan_hdr->evl_tag) % 4096;
-      if (ntohs(vlan_hdr->evl_proto)!=ETHERTYPE_IP)
+      if (hdr->len < sizeof(*vlan_hdr))
         goto dopkt_end;
-      ip_hdr = (struct ip *)(vlan_hdr+1);
+      vlan_hdr = (struct ether_vlan_header *)data;
+      vlan = ntohs(vlan_hdr->evl_tag) % 4096;
+      pkt_data = (void *)(vlan_hdr+1);
+      if (ntohs(vlan_hdr->evl_proto)==ETHERTYPE_IP &&
+          hdr->len >= sizeof(*vlan_hdr)+sizeof(*ip_hdr))
+        ip_hdr = (struct ip *)pkt_data;
+      else
+        ip_hdr = NULL;
     }
     else
 #endif
-    if (ntohs(eth_hdr->ether_type)==ETHERTYPE_IP)
-      ip_hdr = (struct ip *)(eth_hdr+1);
-    else
-      goto dopkt_end;
+    {
+      pkt_data = (void *)(eth_hdr+1);
+      if (ntohs(eth_hdr->ether_type)==ETHERTYPE_IP &&
+          hdr->len >= sizeof(*eth_hdr)+sizeof(*ip_hdr))
+        ip_hdr = (struct ip *)pkt_data;
+      else
+        ip_hdr = NULL;
+    }
   } else if (linktype == DLT_RAW)
   { 
-    if (hdr->len < sizeof(*ip_hdr))
-      goto dopkt_end;
-    eth_hdr = NULL;
 #ifndef NO_TRUNK
     vlan = 0;
 #endif
-    ip_hdr = (struct ip *)data;
+    eth_hdr = NULL;
+    pkt_data = (void *)data;
+    if (hdr->len < sizeof(*ip_hdr))
+      ip_hdr = NULL;
+    else
+      ip_hdr = (struct ip *)pkt_data;
 #ifdef DLT_LINUX_SLL
   } else if (linktype == DLT_LINUX_SLL)
   { 
-    if (hdr->len < sizeof(*sll_hdr)+sizeof(*ip_hdr))
+    if (hdr->len < sizeof(*sll_hdr))
       goto dopkt_end;
     sll_hdr = (struct sll_header *)data;
     eth_hdr = NULL;
 #ifndef NO_TRUNK
     vlan = 0;
 #endif
-    if (ntohs(sll_hdr->sll_protocol)==ETHERTYPE_IP)
-      ip_hdr = (struct ip *)(sll_hdr+1);
+    pkt_data = (void *)(sll_hdr+1);
+    if (ntohs(sll_hdr->sll_protocol)==ETHERTYPE_IP &&
+        hdr->len >= sizeof(*sll_hdr)+sizeof(*ip_hdr))
+      ip_hdr = (struct ip *)pkt_data;
     else
-      goto dopkt_end;
+      ip_hdr = NULL;
     if (sll_hdr->sll_pkttype == 0)	// LINUX_SLL_HOST
       in = 1;
     else if (ntohs(sll_hdr->sll_pkttype) == 4)	// LINUX_SLL_OUTGOING
@@ -286,7 +300,9 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
   } else
     src_mac = dst_mac = NULL;
 #ifdef WITH_PORTS
-  if (ip_hdr->ip_p == IPPROTO_TCP)
+  if (ip_hdr == NULL)
+    src_port = dst_port = 0;
+  else if (ip_hdr->ip_p == IPPROTO_TCP)
   { struct tcphdr *tcphdr = (struct tcphdr *)(ip_hdr+1);
     src_port = ntohs(tcphdr->th_sport);
     dst_port = ntohs(tcphdr->th_dport);
@@ -298,13 +314,13 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     src_port = dst_port = 0;
 #endif
   add_stat(src_mac, dst_mac,
-           *(u_long *)(void *)&(ip_hdr->ip_src),
-           *(u_long *)(void *)&(ip_hdr->ip_dst),
-           hdr->len-(eth_hdr ? ((char *)ip_hdr - (char *)eth_hdr) : 0),
+           ip_hdr ? *(u_long *)(void *)&(ip_hdr->ip_src) : 0,
+           ip_hdr ? *(u_long *)(void *)&(ip_hdr->ip_dst) : 0,
+           hdr->len-((char *)pkt_data - (char *)data),
 #ifndef NO_TRUNK
            vlan,
 #endif
-           in, ip_hdr->ip_p
+           in, ip_hdr ? ip_hdr->ip_p : 0
 #ifdef WITH_PORTS
            , src_port, dst_port
 #endif
