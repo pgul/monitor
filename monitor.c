@@ -232,7 +232,7 @@ void dopkt(u_char *user, const struct pcap_pkthdr *hdr, const u_char *data)
     if (ntohs(eth_hdr->ether_type)==ETHERTYPE_VLAN)
     {
       vlan_hdr=(struct ether_vlan_header *)data;
-      vlan=ntohs(vlan_hdr->evl_tag);
+      vlan=ntohs(vlan_hdr->evl_tag) % 4096;
       if (ntohs(vlan_hdr->evl_proto)!=ETHERTYPE_IP)
         goto dopkt_end;
       ip_hdr = (struct ip *)(vlan_hdr+1);
