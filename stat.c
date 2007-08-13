@@ -165,11 +165,12 @@ static void addmactable(struct attrtype *pa, int src_ua, int dst_ua,
   }
 }
 
-static void found(struct linktype *link, int src_ua, int dst_ua, int in,int len)
+static int found(struct linktype *link, int src_ua, int dst_ua, int in, int len)
 {
   if ((link->bytes[in][src_ua][dst_ua]+=len)>=0xf0000000lu
           || link->nmacs>maxmacs/2)
-    write_stat();
+    return 1; /* need write_stat() */
+  return 0;
 }
 
 void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
@@ -185,7 +186,7 @@ void add_stat(u_char *src_mac, u_char *dst_mac, u_long src_ip, u_long dst_ip,
 {
   u_long local=0, remote=0;
   u_char *remote_mac=NULL;
-  int src_ua, dst_ua, leftpacket, find, snaped, hash, ohash, hit;
+  int src_ua, dst_ua, leftpacket, find, snaped, hash, ohash, hit, needflash;
   struct attrtype *pa;
   struct cachetype *pcache;
 #ifdef WITH_PORTS
@@ -278,20 +279,23 @@ left:
             sport, dport,
 #endif
             len, hit, ohash);
+        needflash = 0;
         for (pcache=cache+hash;; pcache=cache+pcache->next)
         { if (pcache->attr->link)
           { if (remote_mac && pcache->attr->link->mactable)
               addmactable(pcache->attr, cache[hash].src_ua, cache[hash].dst_ua, remote_mac, remote, in, len);
-            found(pcache->attr->link, cache[hash].src_ua, cache[hash].dst_ua, in^pcache->attr->reverse, len);
+            needflash |= found(pcache->attr->link, cache[hash].src_ua, cache[hash].dst_ua, in^pcache->attr->reverse, len);
           }
           if (pcache->next == -1) break;
         }
+        if (needflash) write_stat();
         return;
       }
     }
   }
   pcache=NULL;
   snaped=0;
+  needflash=0;
   for (pa=attrhead; pa; pa=pa->next)
   { find=0;
     if (dst_mac)
@@ -400,12 +404,13 @@ left:
       }
       if (remote_mac && pa->link->mactable != NULL)
         addmactable(pa, src_ua, dst_ua, remote_mac, remote, in, len);
-      found(pa->link, src_ua, dst_ua, in^pa->reverse, len);
+      needflash |= found(pa->link, src_ua, dst_ua, in^pa->reverse, len);
       if (!pa->fallthru)
         break;
     }
   }
   if (leftpacket) goto left;
+  if (needflash) write_stat();
 }
 
 #ifdef DO_MYSQL
